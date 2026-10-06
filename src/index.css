@@ -25,3 +25,23 @@ body {
   color: var(--color-paper);
   font-family: var(--font-mono);
 }
+
+/* View switch "blip" (STYLE §5.6): a 150ms flash. */
+@keyframes view-blip {
+  from {
+    opacity: 0.2;
+    filter: brightness(1.8);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+.view-blip {
+  animation: view-blip 150ms steps(3) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-blip {
+    animation: none;
+  }
+}
