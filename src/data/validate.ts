@@ -30,23 +30,32 @@ export function validateContent(c: Content): string[] {
     'dialogue',
     c.dialogue.map((d) => d.id),
   );
+  dupes(
+    'shift',
+    c.shifts.map((s) => String(s.id)),
+  );
 
-  const modIds = new Set(c.mods.map((m) => m.id));
-  const modKind = new Map<string, string>(c.mods.map((m) => [m.id, m.kind]));
+  const modById = new Map(c.mods.map((m) => [m.id, m]));
   const menuById = new Map(c.menu.map((m) => [m.id, m]));
   const serverIds = new Set(c.servers.map((s) => s.id));
+  const stationIds = new Set<string>(c.stations.map((s) => s.id));
+  const allergenSet = new Set(c.allergens);
   const lineIds = new Set(c.dialogue.map((d) => d.id));
-  const interruptIds = new Set(c.interrupts.map((i) => i.id));
+  const interruptById = new Map(c.interrupts.map((i) => [i.id, i]));
 
   for (const m of c.menu) {
     if (m.ticketName !== m.ticketName.toUpperCase())
       errors.push(`menu "${m.id}" ticketName must be ALL CAPS`);
-    for (const mod of m.legalMods) if (!modIds.has(mod)) errors.push(`menu "${m.id}" unknown mod "${mod}"`);
-    if (m.defaultSide && !modIds.has(m.defaultSide))
+    if (!stationIds.has(m.station)) errors.push(`menu "${m.id}" unknown station "${m.station}"`);
+    for (const mod of m.legalMods) if (!modById.has(mod)) errors.push(`menu "${m.id}" unknown mod "${mod}"`);
+    if (m.defaultSide && !modById.has(m.defaultSide))
       errors.push(`menu "${m.id}" unknown defaultSide "${m.defaultSide}"`);
   }
-  for (const mod of c.mods)
+  for (const mod of c.mods) {
     if (mod.text !== mod.text.toUpperCase()) errors.push(`mod "${mod.id}" text must be ALL CAPS`);
+    for (const a of mod.allergens ?? [])
+      if (!allergenSet.has(a)) errors.push(`mod "${mod.id}" unknown allergen "${a}"`);
+  }
 
   for (const i of c.interrupts)
     for (const line of i.lines)
@@ -67,7 +76,7 @@ export function validateContent(c: Content): string[] {
         for (const mod of itemMods)
           if (!def.legalMods.includes(mod))
             errors.push(`${where}: mod "${mod}" not legal on "${item.menuId}"`);
-        const countKind = (k: string) => itemMods.filter((m) => modKind.get(m) === k).length;
+        const countKind = (k: string) => itemMods.filter((m) => modById.get(m)?.kind === k).length;
         if (def.doneness && countKind('doneness') !== 1)
           errors.push(`${where}: "${item.menuId}" needs exactly one doneness`);
         if (!def.doneness && countKind('doneness') > 0)
@@ -75,7 +84,22 @@ export function validateContent(c: Content): string[] {
         if (countKind('side') > 1) errors.push(`${where}: "${item.menuId}" has more than one side`);
         if (typeof item.seat === 'number' && (item.seat < 1 || item.seat > t.guests))
           errors.push(`${where}: seat ${item.seat} outside 1..${t.guests}`);
+        if (t.allergy && item.seat === t.allergy.seat) {
+          const dishAllergens = [
+            ...def.allergens,
+            ...itemMods.flatMap((m) => modById.get(m)?.allergens ?? []),
+          ];
+          if (dishAllergens.includes(t.allergy.allergen))
+            errors.push(
+              `${where}: seat ${item.seat} is allergic to ${t.allergy.allergen} but ordered "${item.menuId}"`,
+            );
+        }
       }
+    }
+    if (t.allergy) {
+      if (!allergenSet.has(t.allergy.allergen))
+        errors.push(`${where}: unknown allergen "${t.allergy.allergen}"`);
+      if (t.allergy.seat < 1 || t.allergy.seat > t.guests) errors.push(`${where}: allergy seat out of range`);
     }
     if (t.forceDefect && t.forceDefect.itemIdx >= n)
       errors.push(`${where}: forceDefect.itemIdx out of range`);
@@ -87,9 +111,19 @@ export function validateContent(c: Content): string[] {
       const where = `night ${s.id} beat ${idx}`;
       if (b.atMs < prev) errors.push(`${where}: beats must be sorted by atMs`);
       prev = b.atMs;
-      if (b.type === 'ticket') checkTicket(where, b.ticket);
-      if (b.type === 'interrupt' && !interruptIds.has(b.interrupt))
-        errors.push(`${where}: unknown interrupt "${b.interrupt}"`);
+      if (b.type === 'ticket') return checkTicket(where, b.ticket);
+      const def = interruptById.get(b.interrupt);
+      if (!def) return errors.push(`${where}: unknown interrupt "${b.interrupt}"`);
+      if (b.arg !== undefined) {
+        const kind = def.effect.kind;
+        const ok =
+          kind === 'stationDrag'
+            ? stationIds.has(b.arg)
+            : kind === 'eightySix' || kind === 'addOn'
+              ? menuById.has(b.arg)
+              : false;
+        if (!ok) errors.push(`${where}: arg "${b.arg}" not valid for ${b.interrupt}`);
+      }
     });
   }
   return errors;

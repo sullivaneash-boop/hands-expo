@@ -32,6 +32,13 @@ export interface ModDef {
   kind: ModKind;
   /** Printed as *** TEXT *** */
   emphasize?: boolean;
+  /** Allergens this mod adds to the dish (e.g. ADD SALMON → fish). */
+  allergens?: readonly string[];
+}
+
+export interface StationDef {
+  id: StationId;
+  name: string;
 }
 
 export interface ServerDef {
@@ -58,18 +65,19 @@ export interface TicketTemplate {
 
 export type ShiftBeat =
   | { atMs: number; type: 'ticket'; ticket: TicketTemplate }
-  | { atMs: number; type: 'interrupt'; interrupt: string; target?: { table: number } }
-  | { atMs: number; type: 'kitchen'; event: '86' | 'drag' | 'refire'; arg: string };
+  /** `arg`: menu id for kitchen_86, station id for kitchen_drag, menu id for server_addon. */
+  | { atMs: number; type: 'interrupt'; interrupt: string; target?: { table: number }; arg?: string };
 
 export interface ShiftDef {
   id: NightId;
   name: string;
+  /** One line shown on the title/night select. */
+  tagline: string;
   /** 24h hour the wall clock starts at (display only). */
   clockStartHour: number;
+  /** Systems the procedural generator may use tonight. Scripted beats always run. */
   features: readonly FeatureFlag[];
   beats: readonly ShiftBeat[];
-  /** Key into tuning.nights (Phase 3). */
-  proceduralProfile?: string;
 }
 
 /** Interpreted by sim/systems/interrupts.ts. New variants need sim code (AGENTS.md §4). */
@@ -87,17 +95,19 @@ export type InterruptEffect =
 export interface InterruptDef {
   id: string;
   source: InterruptSource;
-  /** Waits at the door for an answer (true) vs. a non-blocking bark (false). */
+  /** Waits at the door for an answer (true) vs. a non-blocking bark from the line/POS (false). */
   blocking: boolean;
   /** Dialogue line ids; one is picked per occurrence. */
   lines: readonly string[];
   choices: 'ticketStatus' | 'heard' | 'none';
   effect: InterruptEffect;
+  /** Feature flag that must be on for procedural spawns. */
+  feature?: FeatureFlag;
 }
 
 export interface DialogueLine {
   id: string;
-  /** May contain {table}, {item}, {seat}, {server}. */
+  /** May contain {table}, {item}, {seat}, {station}. */
   text: string;
   voice?: string;
 }
@@ -105,6 +115,8 @@ export interface DialogueLine {
 export interface Content {
   menu: readonly MenuItemDef[];
   mods: readonly ModDef[];
+  stations: readonly StationDef[];
+  allergens: readonly string[];
   servers: readonly ServerDef[];
   interrupts: readonly InterruptDef[];
   dialogue: readonly DialogueLine[];

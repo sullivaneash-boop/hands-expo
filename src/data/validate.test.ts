@@ -15,6 +15,7 @@ describe('content validation', () => {
         {
           id: 1,
           name: 'Broken',
+          tagline: 'x',
           clockStartHour: 17,
           features: [],
           beats: [

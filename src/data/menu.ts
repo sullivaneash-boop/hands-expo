@@ -64,7 +64,15 @@ export const menu = [
     station: 'pantry',
     cookTier: 'quick',
     doneness: false,
-    legalMods: ['no_onion', 'no_tomato', 'no_cheese', 'sauce_on_side'],
+    legalMods: [
+      'no_onion',
+      'no_tomato',
+      'no_cheese',
+      'sauce_on_side',
+      'add_chicken',
+      'add_salmon',
+      'add_steak',
+    ],
     allergens: ['dairy'],
   },
   {

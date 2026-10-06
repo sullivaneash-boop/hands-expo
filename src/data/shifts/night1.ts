@@ -9,6 +9,7 @@ import type { ShiftDef } from '../schema';
 export const night1 = {
   id: 1,
   name: 'The Window',
+  tagline: 'Read it. Fire it. Check it. Send it.',
   clockStartHour: 17,
   features: [],
   beats: [
