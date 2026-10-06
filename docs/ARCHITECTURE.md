@@ -1,26 +1,26 @@
 # HANDS! — Architecture
 
-> Status: Phase 0 draft, 2026-10-06. Source of truth for *how* we build.
+> Status: Phase 0 draft, 2026-10-06. Source of truth for _how_ we build.
 > Based on `docs/research/01-stack.md`, adjusted where it conflicts with the operating principles (see `docs/DECISIONS.md`).
 
 ---
 
 ## 1. Stack
 
-| Layer | Package | Version policy | Source |
-|---|---|---|---|
-| Language | `typescript` | 5.x, `strict: true` plus `noUncheckedIndexedAccess` | D-020 |
-| UI | `react`, `react-dom` | 19.x | report 01 |
-| Build | `vite`, `@vitejs/plugin-react` | 6.x (report 01). Pin the exact version at scaffold; see D-021 | report 01 |
-| Styling | `tailwindcss`, `@tailwindcss/vite` | 4.x (CSS-first config, **no** `tailwind.config.js`) | report 01, D-022 |
-| State mirror | `zustand` | 5.0.x, named import `{ create }` | report 01 |
-| Audio | `howler`, `@types/howler` | 2.2.4. **Never** `react-howler` | report 01 |
-| Icons | `lucide-react` | **Deferred.** Not installed until a non-diegetic UI needs icons | D-023 |
-| Sprite compiler | `audiosprite` + `ffmpeg` | Phase 4 only. Version verified then | D-024 |
-| Tests | `vitest` | 3.x (whatever matches the Vite major) | D-020 |
-| Lint/format | `eslint` 9 (flat config), `typescript-eslint`, `eslint-plugin-react-hooks`, `prettier` | latest stable | D-020 |
-| Script runner | `tsx` | latest stable. Runs headless sims in Node | D-020 |
-| Hosting | Vercel (static SPA) | `vercel.json` with SPA rewrite and immutable cache for `/assets/` | report 01 |
+| Layer           | Package                                                                                | Version policy                                                    | Source           |
+| --------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------- |
+| Language        | `typescript`                                                                           | 5.x, `strict: true` plus `noUncheckedIndexedAccess`               | D-020            |
+| UI              | `react`, `react-dom`                                                                   | 19.x                                                              | report 01        |
+| Build           | `vite`, `@vitejs/plugin-react`                                                         | 6.x (report 01). Pin the exact version at scaffold; see D-021     | report 01        |
+| Styling         | `tailwindcss`, `@tailwindcss/vite`                                                     | 4.x (CSS-first config, **no** `tailwind.config.js`)               | report 01, D-022 |
+| State mirror    | `zustand`                                                                              | 5.0.x, named import `{ create }`                                  | report 01        |
+| Audio           | `howler`, `@types/howler`                                                              | 2.2.4. **Never** `react-howler`                                   | report 01        |
+| Icons           | `lucide-react`                                                                         | **Deferred.** Not installed until a non-diegetic UI needs icons   | D-023            |
+| Sprite compiler | `audiosprite` + `ffmpeg`                                                               | Phase 4 only. Version verified then                               | D-024            |
+| Tests           | `vitest`                                                                               | 3.x (whatever matches the Vite major)                             | D-020            |
+| Lint/format     | `eslint` 9 (flat config), `typescript-eslint`, `eslint-plugin-react-hooks`, `prettier` | latest stable                                                     | D-020            |
+| Script runner   | `tsx`                                                                                  | latest stable. Runs headless sims in Node                         | D-020            |
+| Hosting         | Vercel (static SPA)                                                                    | `vercel.json` with SPA rewrite and immutable cache for `/assets/` | report 01        |
 
 Node ≥ 20 (local dev is Node 25). Package manager: **npm** (lockfile committed).
 
@@ -55,6 +55,7 @@ Not used: Phaser, Pixi, Three, any canvas engine for the game scene, XState, Red
 ```
 
 **Hard rules** (enforced by ESLint `no-restricted-imports` / `no-restricted-globals` on `src/sim/**`):
+
 - `src/sim` must not import `react`, `zustand`, `howler`, `src/engine`, `src/ui`, `src/store`, or `src/audio`.
 - `src/sim` must not use `window`, `document`, `requestAnimationFrame`, `setTimeout`, `setInterval`, `performance`, `Date`, or `Math.random`. Time comes from the tick counter; randomness comes from `ctx.rng`.
 - `src/sim` may import only `src/sim/**`, `src/data/**`, and `src/config/**`.
@@ -73,11 +74,7 @@ hands-expo/
 │   ├── GDD.md  ARCHITECTURE.md  STYLE.md  DECISIONS.md  ROADMAP.md
 │   ├── ASSETS.md             # Phase 4: every asset's source and license
 │   └── research/             # the three source reports (read-only)
-├── public/
-│   └── assets/
-│       ├── audio/            # sprite.webm/.m4a + sprite.json (Phase 4); placeholder/ (Phase 2)
-│       ├── fonts/            # self-hosted WOFF2 + license files (Phase 4)
-│       └── img/              # view stills/overlays (Phase 4)
+├── public/                 # unhashed static files only (favicon) — D-029
 ├── scripts/
 │   ├── balance.ts            # headless N-shift runner with bot → metrics (Phase 3)
 │   └── gen-placeholder-audio.ts  # writes beep WAVs + sprite map, no ffmpeg (Phase 2)
@@ -103,10 +100,12 @@ hands-expo/
 │   │   ├── systems/          # schedule, tickets, kitchen, pass, interrupts, scoring, shift
 │   │   ├── bot/              # bot player for headless runs (Phase 3)
 │   │   └── *.test.ts         # tests colocated
+│   ├── assets/               # shipped media, imported so Vite hashes it (D-029): audio/ fonts/ img/
 │   ├── engine/
 │   │   ├── loop.ts           # rAF fixed-step driver (speed, pause, step-once)
 │   │   ├── bus.ts            # typed pub/sub for SimEvents
-│   │   ├── session.ts        # owns the sim instance; dispatch(); startNight(); replay log
+│   │   ├── session.ts        # owns the sim instance; command queue; replay log
+│   │   ├── runtime.ts        # `engine` facade for the UI; pushes snapshots to the store (D-031)
 │   │   └── save.ts           # persisted progress (Phase 3)
 │   ├── store/
 │   │   └── useGameStore.ts   # Zustand: { snap: SimSnapshot, ui: UiState }
@@ -157,11 +156,11 @@ type PlayerCommand =
   | { type: 'fire'; ticketId: string; courseIdx: number; itemId?: string } // itemId → single item
   | { type: 'send'; ticketId: string; courseIdx: number }
   | { type: 'refire'; plateId: string }
-  | { type: 'check'; plateId: string }            // recorded for metrics/bot; no rule effect
+  | { type: 'check'; plateId: string } // recorded for metrics/bot; no rule effect
   | { type: 'answer'; interruptId: string; choice: string }
-  | { type: 'ackAllergy'; ticketId: string }       // Phase 3
+  | { type: 'ackAllergy'; ticketId: string } // Phase 3
   | { type: 'resolve86'; ticketId: string; itemId: string; subMenuId: string | null } // Phase 3
-  | { type: 'debug'; action: DebugAction };        // spawn ticket, trigger interrupt, set health…
+  | { type: 'debug'; action: DebugAction }; // spawn ticket, trigger interrupt, set health…
 ```
 
 View switching is **UI state**, not a sim command. It doesn't change sim rules (D-012).
@@ -173,17 +172,17 @@ Invalid commands (firing an already-fired item, sending a cleared ticket) are ig
 ```ts
 type SimEvent =
   | { type: 'shiftStarted'; nightId; seed }
-  | { type: 'ticketPrinted'; ticketId; lineCount }       // audio: printer; lineCount drives print length (Ph4)
+  | { type: 'ticketPrinted'; ticketId; lineCount } // audio: printer; lineCount drives print length (Ph4)
   | { type: 'itemFired'; ticketId; itemId; station }
-  | { type: 'plateUp'; plateId; ticketId; station }      // audio: food-up
+  | { type: 'plateUp'; plateId; ticketId; station } // audio: food-up
   | { type: 'plateDied'; plateId }
   | { type: 'plateRefired'; plateId; correct: boolean }
   | { type: 'courseSent'; ticketId; courseIdx; errors: PlateError[]; synced: boolean }
   | { type: 'ticketCleared'; ticketId; ticketTimeMs }
-  | { type: 'ticketLate'; ticketId }                      // fires once at the threshold
+  | { type: 'ticketLate'; ticketId } // fires once at the threshold
   | { type: 'interruptArrived'; interruptId; source }
   | { type: 'interruptResolved'; interruptId; outcome: 'correct' | 'wrong' | 'timeout' }
-  | { type: 'bark'; lineId; source }                      // kitchen/floor voice lines
+  | { type: 'bark'; lineId; source } // kitchen/floor voice lines
   | { type: 'healthChanged'; delta; reason: ScoreReason }
   | { type: 'printerStopped' }
   | { type: 'shiftEnded'; outcome: 'won' | 'lost'; summary: ShiftSummary }
@@ -191,6 +190,7 @@ type SimEvent =
 ```
 
 ### Event bus (`src/engine/bus.ts`)
+
 A tiny typed pub/sub: `on(type, handler)`, `onAny(handler)`, `emit(event)`. About 30 lines, no dependency. Events are delivered **after** the snapshot is pushed for that frame, so a handler that reads the store sees consistent state. Subscribers: `audio/` (sounds), `ui/` (transient effects such as shake or flash, via `onAny`), and the debug event log. **The sim never subscribes to anything.**
 
 ## 7. State model
@@ -199,32 +199,65 @@ A tiny typed pub/sub: `on(type, handler)`, `onAny(handler)`, `emit(event)`. Abou
 
 ```ts
 interface SimState {
-  tick: number; nowMs: number;
+  tick: number;
+  nowMs: number;
   rng: RngState;
-  nightId: NightId; phase: 'running' | 'overtime' | 'ended';
+  nightId: NightId;
+  phase: 'running' | 'overtime' | 'ended';
   health: number;
-  tickets: Record<TicketId, Ticket>; railOrder: TicketId[];
-  plates: Record<PlateId, Plate>; windowOrder: PlateId[];
-  cooking: CookJob[];                       // items in progress, with doneAtMs
+  tickets: Record<TicketId, Ticket>;
+  railOrder: TicketId[];
+  plates: Record<PlateId, Plate>;
+  windowOrder: PlateId[];
+  cooking: CookJob[]; // items in progress, with doneAtMs
   stations: Record<StationId, { dragMultiplier: number; dragUntilMs: number }>;
   interrupts: Record<InterruptId, ActiveInterrupt>;
-  eighty6: MenuItemId[];                    // Phase 3
+  eighty6: MenuItemId[]; // Phase 3
   schedule: { cursor: number; nextProceduralMs: number };
-  stats: ShiftStats;                        // accumulators for the summary
-  ids: { next: number };                    // deterministic id counter
+  stats: ShiftStats; // accumulators for the summary
+  ids: { next: number }; // deterministic id counter
   outcome: null | 'won' | 'lost';
 }
 
 interface Ticket {
-  id; table: number; server: ServerId; guests: number; printedAtMs: number;
-  kind: 'order' | 'addon' | 'refire'; parentId?: TicketId;
-  courses: Course[]; note?: string; allergy?: { seat: number; allergen: string; acked: boolean };
+  id;
+  table: number;
+  server: ServerId;
+  guests: number;
+  printedAtMs: number;
+  kind: 'order' | 'addon' | 'refire';
+  parentId?: TicketId;
+  courses: Course[];
+  note?: string;
+  allergy?: { seat: number; allergen: string; acked: boolean };
   flags: { vip: boolean; pushed: boolean; notBeforeMs?: number };
-  lateAtMs: number; clearedAtMs?: number;
+  lateAtMs: number;
+  clearedAtMs?: number;
 }
-interface Course { kind: 'app' | 'main' | 'side'; hold: boolean; readyAtMs?: number; status: 'held'|'fired'|'partial'|'up'|'sent'; items: TicketItem[] }
-interface TicketItem { id; seat: number | 'share'; menuId; mods: ModId[]; state: 'held'|'cooking'|'up'|'sent'|'86'; plateId?: PlateId }
-interface Plate { id; ticketId; itemId; upAtMs: number; build: PlateBuild; defect: PlateDefect | null; allergyPick: boolean }
+interface Course {
+  kind: 'app' | 'main' | 'side';
+  hold: boolean;
+  readyAtMs?: number;
+  status: 'held' | 'fired' | 'partial' | 'up' | 'sent';
+  items: TicketItem[];
+}
+interface TicketItem {
+  id;
+  seat: number | 'share';
+  menuId;
+  mods: ModId[];
+  state: 'held' | 'cooking' | 'up' | 'sent' | '86';
+  plateId?: PlateId;
+}
+interface Plate {
+  id;
+  ticketId;
+  itemId;
+  upAtMs: number;
+  build: PlateBuild;
+  defect: PlateDefect | null;
+  allergyPick: boolean;
+}
 ```
 
 ## 8. Data schemas (`src/data/schema.ts`)
@@ -233,28 +266,47 @@ Content is **typed TS modules** using `satisfies` (D-003). Adding content never 
 
 ```ts
 type StationId = 'grill' | 'saute' | 'pantry';
-type CookTier  = 'quick' | 'standard' | 'long';          // durations live in tuning.ts
+type CookTier = 'quick' | 'standard' | 'long'; // durations live in tuning.ts
 
 interface MenuItemDef {
-  id: string; ticketName: string;                         // "HOUSE BURGER"
-  course: 'app' | 'main' | 'side'; station: StationId; cookTier: CookTier;
-  doneness: boolean; defaultSide?: ModId; legalMods: ModId[]; allergens: string[];
+  id: string;
+  ticketName: string; // "HOUSE BURGER"
+  course: 'app' | 'main' | 'side';
+  station: StationId;
+  cookTier: CookTier;
+  doneness: boolean;
+  defaultSide?: ModId;
+  legalMods: ModId[];
+  allergens: string[];
 }
-interface ModDef { id: string; text: string; kind: 'doneness'|'remove'|'add'|'side'|'prep'; emphasize?: boolean } // emphasize → *** NO BUTTER ***
+interface ModDef {
+  id: string;
+  text: string;
+  kind: 'doneness' | 'remove' | 'add' | 'side' | 'prep';
+  emphasize?: boolean;
+} // emphasize → *** NO BUTTER ***
 
 interface TicketTemplate {
-  table: number; server: ServerId; guests: number; note?: string;
+  table: number;
+  server: ServerId;
+  guests: number;
+  note?: string;
   allergy?: { seat: number; allergen: string };
-  courses: { kind: 'app'|'main'|'side'; hold?: boolean; items: { seat: number|'share'; menuId: string; mods?: ModId[] }[] }[];
-  forceDefect?: { itemIdx: number; defect: PlateDefectKind };   // scripted teaching moments
+  courses: {
+    kind: 'app' | 'main' | 'side';
+    hold?: boolean;
+    items: { seat: number | 'share'; menuId: string; mods?: ModId[] }[];
+  }[];
+  forceDefect?: { itemIdx: number; defect: PlateDefectKind }; // scripted teaching moments
 }
 
 interface ShiftDef {
-  id: NightId; name: string;                  // "The Window"
-  clockStart: string;                         // "5:00 PM" (display only)
-  beats: ShiftBeat[];                         // scripted, by atMs
-  procedural?: { profile: string };           // key into tuning.nights[id].procedural
-  features: FeatureFlag[];                    // e.g. 'courses','86','allergy','manager'; gates systems per night
+  id: NightId;
+  name: string; // "The Window"
+  clockStart: string; // "5:00 PM" (display only)
+  beats: ShiftBeat[]; // scripted, by atMs
+  procedural?: { profile: string }; // key into tuning.nights[id].procedural
+  features: FeatureFlag[]; // e.g. 'courses','86','allergy','manager'; gates systems per night
 }
 type ShiftBeat =
   | { atMs: number; type: 'ticket'; ticket: TicketTemplate }
@@ -262,19 +314,29 @@ type ShiftBeat =
   | { atMs: number; type: 'kitchen'; event: '86' | 'drag' | 'refire'; arg: string };
 
 interface InterruptDef {
-  id: string; source: 'server'|'manager'|'bar'|'kitchen';
-  blocking: boolean;                          // waits at the door vs. a bark
-  lines: string[];                            // dialogue ids
+  id: string;
+  source: 'server' | 'manager' | 'bar' | 'kitchen';
+  blocking: boolean; // waits at the door vs. a bark
+  lines: string[]; // dialogue ids
   choices?: 'ticketStatus' | 'heard';
-  effect: InterruptEffect;                    // discriminated union interpreted by sim/systems/interrupts.ts
+  effect: InterruptEffect; // discriminated union interpreted by sim/systems/interrupts.ts
   patienceKey: keyof Tuning['interrupts']['patienceMs'];
 }
 
-interface DialogueLine { id: string; text: string; voice?: string }   // "Where's my {table}?"
-interface SoundDef { id: string; sprite: string; volume: number; pitchJitter?: number }
+interface DialogueLine {
+  id: string;
+  text: string;
+  voice?: string;
+} // "Where's my {table}?"
+interface SoundDef {
+  id: string;
+  sprite: string;
+  volume: number;
+  pitchJitter?: number;
+}
 ```
 
-**Adding a new interrupt *kind*** (a new `effect` variant) is the one content change that needs sim code. New interrupts that reuse existing effects are data-only.
+**Adding a new interrupt _kind_** (a new `effect` variant) is the one content change that needs sim code. New interrupts that reuse existing effects are data-only.
 
 ## 9. Tuning (`src/config/tuning.ts`)
 
