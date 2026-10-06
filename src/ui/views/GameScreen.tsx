@@ -17,7 +17,7 @@ function look(dir: -1 | 1) {
 function DoorCue() {
   const firstId = useGameStore((s) => s.snap?.interruptOrder[0]);
   const count = useGameStore((s) => s.snap?.interruptOrder.length ?? 0);
-  const server = useGameStore((s) => (firstId ? s.snap?.interrupts[firstId]?.server : undefined));
+  const server = useGameStore((s) => (firstId ? s.snap?.interrupts[firstId]?.speaker : undefined));
   if (!server) return null;
   return (
     <button

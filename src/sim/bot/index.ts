@@ -1,2 +1,3 @@
-// Placeholder — populated in Phase 2/3 (see docs/ROADMAP.md).
-export {};
+export { botInit, botStep, type BotMemory } from './bot';
+export { BOT_SKILLS, type BotSkill } from './skills';
+export { runShift, type ShiftRun } from './run';

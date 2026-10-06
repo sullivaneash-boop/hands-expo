@@ -59,5 +59,9 @@ export const REASON_LABEL: Record<ScoreReason, string> = {
   interruptWrong: 'told the server wrong',
   interruptTimeout: 'ignored the server',
   overtimeLeftover: 'tickets left at close',
+  landedEarly: 'food beat the table',
+  sentBeforeBar: 'food beat the drinks',
+  fired86: 'fired an 86’d item',
+  allergyIncident: 'ALLERGY INCIDENT',
   debug: 'debug',
 };

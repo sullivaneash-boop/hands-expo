@@ -9,26 +9,36 @@ const ITEM_STATE_STYLE: Record<TicketItem['state'], string> = {
   cooking: 'text-ink/60',
   up: 'text-ink',
   sent: 'text-ink/30 line-through',
+  void: 'text-ink/30 line-through',
 };
 const CHIP: Record<TicketItem['state'], string> = {
   held: 'HELD',
   cooking: 'FIRED',
   up: 'UP',
   sent: 'SENT',
+  void: 'VOID',
 };
 const CHIP_STYLE: Record<TicketItem['state'], string> = {
   held: 'border-ink/40 text-ink/60',
   cooking: 'border-steel bg-steel text-paper',
   up: 'border-amber bg-amber text-ink',
   sent: 'border-transparent text-ink/30',
+  void: 'border-transparent text-ink/30',
 };
+
+/** Earliest late time among open, ready courses (Phase 3 grey-box stopgap; full course UI pending). */
+const lateAt = (t: Ticket) =>
+  Math.min(
+    ...t.courses.filter((c) => c.sentAtMs === null && c.lateAtMs !== null).map((c) => c.lateAtMs as number),
+    Infinity,
+  );
 
 /** Ticket age vs grace: amber after half, rush red once late. */
 function AgeBar({ ticket }: { ticket: Ticket }) {
   const nowMs = useGameStore((s) => s.snap?.nowMs ?? 0);
-  const grace = ticket.lateAtMs - ticket.printedAtMs;
+  const grace = lateAt(ticket) - ticket.printedAtMs;
   const age = nowMs - ticket.printedAtMs;
-  const late = nowMs >= ticket.lateAtMs;
+  const late = nowMs >= lateAt(ticket);
   const pct = Math.min(100, (age / grace) * 100);
   const color = late ? 'bg-rush' : pct > 50 ? 'bg-amber' : 'bg-tile';
   return (
@@ -47,7 +57,7 @@ export function TicketCard({ id }: { id: string }) {
   const ticket = useGameStore((s) => s.snap?.tickets[id]);
   const nightId = useGameStore((s) => s.snap?.nightId ?? 1);
   const selected = useGameStore((s) => s.selectedTicketId === id);
-  const isLate = useGameStore((s) => (s.snap && ticket ? s.snap.nowMs >= ticket.lateAtMs : false));
+  const isLate = useGameStore((s) => (s.snap && ticket ? s.snap.nowMs >= lateAt(ticket) : false));
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {

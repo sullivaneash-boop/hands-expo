@@ -11,7 +11,7 @@ function InterruptCard({ id }: { id: string }) {
   const pct = (left / (it.expiresAtMs - it.arrivedAtMs)) * 100;
   return (
     <div className="w-80 border-2 border-paper bg-night p-4">
-      <div className="mb-1 text-xs text-tile">{serverName(it.server)} · SERVER</div>
+      <div className="mb-1 text-xs text-tile">{serverName(it.speaker)} · SERVER</div>
       <p className="mb-3 text-lg text-paper">“{line(it.lineId, { table: it.table })}”</p>
       <div className="mb-3 h-1 bg-steel">
         <div className={`h-full ${pct < 33 ? 'bg-rush' : 'bg-amber'}`} style={{ width: `${pct}%` }} />
