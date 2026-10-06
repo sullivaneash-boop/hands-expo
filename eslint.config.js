@@ -84,4 +84,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Tests and test helpers assert on known fixtures; `!` keeps them readable.
+    files: ['**/*.test.ts', 'src/sim/testkit.ts'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
 );

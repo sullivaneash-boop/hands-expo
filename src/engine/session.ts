@@ -22,7 +22,7 @@ export class Session {
     nightId: NightId,
     private readonly ctx: SimContext,
   ) {
-    this.state = createSim(seed, nightId);
+    this.state = createSim(seed, nightId, ctx);
     this.log = { seed: this.state.seed, nightId, commands: [] };
   }
 
@@ -47,7 +47,7 @@ export class Session {
 
 /** Re-run a recorded shift headlessly to `untilTick`. */
 export function replay(log: ReplayLog, ctx: SimContext, untilTick: number): SimState {
-  let state = createSim(log.seed, log.nightId);
+  let state = createSim(log.seed, log.nightId, ctx);
   let ci = 0;
   while (state.tick < untilTick) {
     const cmds: PlayerCommand[] = [];
