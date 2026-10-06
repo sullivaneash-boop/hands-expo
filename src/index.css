@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+/* Palette tokens from docs/STYLE.md §2. Use roles, not raw hex, everywhere. */
+@theme {
+  --color-night: #0e1012;
+  --color-steel: #3a3f44;
+  --color-tile: #8fa39a;
+  --color-amber: #e8a33d;
+  --color-paper: #f2efe6;
+  --color-ink: #2b2b2e;
+  --color-phosphor: #8fd19e;
+  --color-rush: #c8423b;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-night);
+  color: var(--color-paper);
+  font-family: var(--font-mono);
+}
