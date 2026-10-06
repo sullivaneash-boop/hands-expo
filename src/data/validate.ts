@@ -32,6 +32,7 @@ export function validateContent(c: Content): string[] {
   );
 
   const modIds = new Set(c.mods.map((m) => m.id));
+  const modKind = new Map<string, string>(c.mods.map((m) => [m.id, m.kind]));
   const menuById = new Map(c.menu.map((m) => [m.id, m]));
   const serverIds = new Set(c.servers.map((s) => s.id));
   const lineIds = new Set(c.dialogue.map((d) => d.id));
@@ -62,9 +63,16 @@ export function validateContent(c: Content): string[] {
           errors.push(`${where}: unknown menu item "${item.menuId}"`);
           continue;
         }
-        for (const mod of item.mods ?? [])
+        const itemMods = item.mods ?? [];
+        for (const mod of itemMods)
           if (!def.legalMods.includes(mod))
             errors.push(`${where}: mod "${mod}" not legal on "${item.menuId}"`);
+        const countKind = (k: string) => itemMods.filter((m) => modKind.get(m) === k).length;
+        if (def.doneness && countKind('doneness') !== 1)
+          errors.push(`${where}: "${item.menuId}" needs exactly one doneness`);
+        if (!def.doneness && countKind('doneness') > 0)
+          errors.push(`${where}: "${item.menuId}" takes no doneness`);
+        if (countKind('side') > 1) errors.push(`${where}: "${item.menuId}" has more than one side`);
         if (typeof item.seat === 'number' && (item.seat < 1 || item.seat > t.guests))
           errors.push(`${where}: seat ${item.seat} outside 1..${t.guests}`);
       }

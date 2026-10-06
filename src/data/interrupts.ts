@@ -5,7 +5,7 @@ export const interrupts = [
     id: 'server_status',
     source: 'server',
     blocking: true,
-    lines: ['server_status_1'],
+    lines: ['server_status_1', 'server_status_2', 'server_status_3'],
     choices: 'ticketStatus',
     effect: { kind: 'askStatus' },
   },

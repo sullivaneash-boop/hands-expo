@@ -1,3 +1,8 @@
 import type { ServerDef } from './schema';
 
-export const servers = [{ id: 'maya', name: 'MAYA' }] as const satisfies readonly ServerDef[];
+/** Fictional servers (report 02 fixtures). */
+export const servers = [
+  { id: 'maya', name: 'MAYA' },
+  { id: 'luis', name: 'LUIS' },
+  { id: 'jen', name: 'JEN' },
+] as const satisfies readonly ServerDef[];

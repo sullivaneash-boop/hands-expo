@@ -20,6 +20,8 @@ export const tuning = {
     overtimeCapMs: 90_000,
     /** Multiplier on authored beat times (D-026). */
     timeScale: 1,
+    /** Wall-clock minutes shown per sim second (display only; 3:00 shift ≈ 4.5 h of service). */
+    clockMinutesPerSec: 1.5,
   },
 
   cook: {
@@ -64,6 +66,18 @@ export const tuning = {
     fired86: -10,
     allergyIncident: -50,
     overtimeLeftoverPerTicket: -10,
+    /** Final 0–100 score = weighted blend of sub-scores (GDD §6 summary). */
+    final: {
+      healthWeight: 0.4,
+      timeWeight: 0.25,
+      accuracyWeight: 0.25,
+      passWeight: 0.1,
+      /** Average ticket time that scores 100 on Ticket Time; 2× this scores 0. */
+      targetTicketMs: 45_000,
+      /** Pass Control loses this much per dead plate / incomplete send / early landing. */
+      deadPlateCost: 15,
+      incompleteSendCost: 10,
+    },
     /** Final score (0–100) → grade, highest band first. */
     gradeBands: [
       { min: 90, grade: 'A' },
@@ -87,10 +101,32 @@ export const tuning = {
     patienceMs: { server: 12_000, manager: 10_000, bar: 12_000 },
   },
 
+  /** Random ticket generator (debug spawn now; Phase 3 procedural waves). */
+  generate: {
+    guestWeights: { 1: 3, 2: 4, 3: 2, 4: 1 },
+    /** Chance each eligible optional mod (remove/add/prep) is added, up to maxExtraMods. */
+    extraModChance: 0.3,
+    maxExtraMods: 2,
+    /** Chance the side is swapped from the item's default. */
+    sideSwapChance: 0.25,
+    tableRange: [1, 60],
+  },
+
   debug: {
     speeds: [0.5, 1, 2, 5, 10],
   },
 } as const;
 
-export type Tuning = typeof tuning;
-export type NightId = keyof Tuning['shift']['durationMs'];
+/** Widen literal types so tests/balancer can pass overrides (`{ ...tuning, cook: { ...tuning.cook, jitterPct: 0 } }`). */
+type Widen<T> = T extends number
+  ? number
+  : T extends string
+    ? string
+    : T extends readonly (infer U)[]
+      ? readonly Widen<U>[]
+      : T extends object
+        ? { readonly [K in keyof T]: Widen<T[K]> }
+        : T;
+
+export type Tuning = Widen<typeof tuning>;
+export type NightId = keyof (typeof tuning)['shift']['durationMs'];
