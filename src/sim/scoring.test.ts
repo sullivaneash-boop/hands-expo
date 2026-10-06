@@ -99,4 +99,10 @@ describe('scoring (2.5)', () => {
     expect(h.healthDelta('overtimeLeftover')).toBe(T.score.overtimeLeftoverPerTicket);
     expect(h.state.summary!.ticketsLeft).toBe(1);
   });
+
+  it('open tickets count against the Ticket Time sub-score', () => {
+    const h = new Harness(makeCtx([ticketAt(0, oneBurger)])).until(120_000);
+    h.do({ type: 'debug', action: { kind: 'setHealth', health: 0 } });
+    expect(h.state.summary!.subScores.time).toBe(0);
+  });
 });

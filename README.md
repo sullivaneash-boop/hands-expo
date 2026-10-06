@@ -2,7 +2,7 @@
 
 A restaurant **expo** simulator for the browser. You work the window: tickets print, you fire orders, check plates, call for hands, and fend off servers, the manager, the bar, and the line. Fixed first-person POV, switchable views, low-fi indie mood.
 
-**Status:** Phase 1 (scaffold). Boots a deterministic sim loop and shows a frame counter.
+**Status:** Phase 2 (grey-box). Night 1 is playable: tickets, firing, plate checks, refires, a server at the door, scoring, win/lose, summary.
 **Live:** https://hands-expo.vercel.app (`main`); every pushed branch gets a Vercel preview.
 
 ## Quickstart
@@ -22,7 +22,9 @@ npm run dev        # http://localhost:5173
 | `npm run lint` / `typecheck` / `format` | ESLint (including sim-purity rules) / tsc / Prettier       |
 | `npm run check`                         | Everything above; run before every push                    |
 
-`?seed=123` in the URL fixes the RNG seed.
+`?seed=123` in the URL fixes the RNG seed. `?debug=1` opens the debug panel in any build (toggle with `` ` ``): speed, pause/step, +10s/+30s, spawn ticket, trigger interrupt, set health, reveal bad plates, restart/seed, event log, state JSON.
+
+**Controls:** click **FIRE** on a ticket (or click one item line to fire just that item) → plates land in the window → click a plate to **CHECK** it → **REFIRE** or **HANDS!**. `A`/`D` or the arrow keys switch between the pass and the door. Placeholder audio: generate with `npx tsx scripts/gen-placeholder-audio.ts` (output is committed).
 
 ## Docs
 

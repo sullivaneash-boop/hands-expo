@@ -112,3 +112,38 @@ _Reason:_ A backgrounded or throttled tab must not wake up and dump a minute of 
 
 **D-034 — 2026-10-06 — The sim purity lint rules also cover `src/data` and `src/config`.**
 _Reason:_ The sim imports both, so an impure import there would leak into the sim. Verified by a probe file: `Math.random`, `Date`, `setTimeout`, a zustand import, and an engine import each produce a lint error.
+
+### Phase 2 — Grey-box core loop
+
+**D-035 — 2026-10-06 — One branch per phase (`p2/grey-box`) with one commit per ROADMAP task, instead of one branch per task.**
+_Reason:_ The owner playtests at phase gates and doesn't want PRs. Thirteen micro-branches merged into `main` would only add ceremony. Commits stay task-sized and `main` only moves at phase approval.
+
+**D-036 — 2026-10-06 — The sim updates state through a copy-on-write `Work` draft (`src/sim/work.ts`). An entity is `structuredClone`d on first touch in a step; untouched tickets and plates keep their object identity.**
+_Reason:_ This gives immutable snapshots (cheap React selectors, safe replays) without hand-written spread chains in every system, which agents get wrong. Verified by a test that steps 400 ticks and asserts the previous state never changes.
+
+**D-037 — 2026-10-06 — Plate defects use a fallback chain: wrongDoneness → wrongMod, missingComponent → wrongMod, wrongMod → wrongDish, then none. Errors are judged by comparing ordered vs. made (`plateError`), not by trusting the rolled defect. A swapped side counts as wrongMod; a missing side counts as missingComponent.**
+_Reason:_ Not every defect applies to every item (a salmon has no doneness). Judging by comparison means a fizzled defect can never be punished. SIDE FRIES has nothing that can go wrong, so its defects fizzle (tested).
+
+**D-038 — 2026-10-06 — The sync bonus requires a course of 2+ plates, sent whole in one HANDS!, with no bad plates, and all plates landing within `syncWindowMs`.**
+_Reason:_ Without the 2-plate rule, every one-plate ticket would earn it for free.
+
+**D-039 — 2026-10-06 — `server_status` is judged against the board at the moment the player answers. If the ticket clears first, the question resolves as "moot" with no penalty. The FLOOR view hides the rail, so the player answers from memory.**
+_Reason:_ Answering from memory is the GDD §4 attention trade-off. Judging at answer time means a player who checks the rail, turns around, and answers fast is never wrong because the board moved. "Moot" avoids punishing the player for clearing the table, which is the best outcome.
+
+**D-040 — 2026-10-06 — Final score = 0.4·health + 0.25·time + 0.25·accuracy + 0.1·pass (weights in tuning). The Ticket Time sub-score counts tickets still open at shift end at their age then. A lost shift is capped at score 49 and grade F.**
+_Reason:_ In playtest, losing with 1 of 7 tickets cleared showed "time 100", which rewarded abandoning tickets. Fixed and covered by a test.
+
+**D-041 — 2026-10-06 — Health is an integer. Late drain is charged once per whole second per late ticket, aggregated into one `healthChanged` per tick.**
+_Reason:_ Integer health keeps the state exact and the HUD honest. Per-second charging matches GDD "−1/s" without fractional health.
+
+**D-042 — 2026-10-06 — The wall clock shows 1.5 game minutes per sim second (`tuning.shift.clockMinutesPerSec`), so 5:00 PM becomes about 9:30 PM over Night 1's 3:00. Ticket print times use the same clock.**
+_Reason:_ A clock running at real seconds would read 5:03 PM at close and kill the "service is passing" mood. Display only; no rule depends on it.
+
+**D-043 — 2026-10-06 — Debug adds `+10s` / `+30s` fast-forward (runs ticks immediately), a "reveal bad plates" toggle, and (in debug builds only) `window.__hands = { engine, store }`.**
+_Reason:_ Principle 5. The in-app browser throttles rAF to about 1 fps when unfocused, so time-based playtesting there needs fast-forward. `__hands` lets agents run scripted playtests through the real runtime. Fast-forward is equivalent to playing that time with no input, so determinism holds.
+
+**D-044 — 2026-10-06 — The placeholder sprite has 5 sounds (print, food_up, interrupt, error, send), not just the 2 the brief named, generated as one WAV by `scripts/gen-placeholder-audio.ts`.**
+_Reason:_ Each extra sound is a few lines of synthesis, and the interrupt cue is how the player knows to turn to the door. The event→sound mapping in `soundMap.ts` is final; Phase 4 only swaps the sprite.
+
+**D-045 — 2026-10-06 — Window plates show table, seat and dish name only. Doneness, mods and sides appear only on the CHECK card.**
+_Reason:_ CHECK must cost something (a click and a read), or there's no QC skill. Report 02: "the player should lose because they lost the thread."

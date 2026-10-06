@@ -28,10 +28,15 @@ export function summarize(s: SimState, outcome: 'won' | 'lost', ctx: SimContext)
   const f = score.final;
   const st = s.stats;
   const avgTicketMs = st.ticketsCleared > 0 ? Math.round(st.ticketTimeSumMs / st.ticketsCleared) : 0;
+  // Ticket Time sub-score also counts tickets still open at the end, at their age then,
+  // so abandoning tickets can't produce a perfect time score (found in Phase 2 playtest).
+  const openAges = s.railOrder.map((id) => s.nowMs - (s.tickets[id]?.printedAtMs ?? s.nowMs));
+  const timedCount = st.ticketsCleared + openAges.length;
+  const timedAvgMs =
+    timedCount > 0 ? (st.ticketTimeSumMs + openAges.reduce((a, b) => a + b, 0)) / timedCount : 0;
 
   const health = clamp((s.health / score.maxHealth) * 100);
-  const time =
-    st.ticketsCleared === 0 ? 0 : clamp(100 * (1 - (avgTicketMs - f.targetTicketMs) / f.targetTicketMs));
+  const time = timedCount === 0 ? 0 : clamp(100 * (1 - (timedAvgMs - f.targetTicketMs) / f.targetTicketMs));
   const judged = st.errorsCaught + st.errorsEscaped;
   const accuracy = judged === 0 ? 100 : clamp((100 * st.errorsCaught) / judged);
   const pass = clamp(100 - f.deadPlateCost * st.platesDied - f.incompleteSendCost * st.incompleteSends);
