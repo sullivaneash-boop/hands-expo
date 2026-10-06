@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vercel/
+.env*
+!.env.example
+scripts/out/
+*.log
+.DS_Store
+coverage/
+assets-src/**/*.wav
