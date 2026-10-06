@@ -1,45 +1,61 @@
 import type { SimContext } from '../context';
-import type { SimState, ShiftSummary } from '../state';
+import type { ShiftSummary, SimState } from '../state';
 import type { Work } from '../work';
 
-/** Late tickets drain health once per whole second past their grace time. */
+/** Late courses drain health once per whole second past their grace time (pushed tables drain faster). */
 export function updateLateness(w: Work): void {
-  const { score } = w.ctx.tuning;
-  let seconds = 0;
-  for (const id of w.s.railOrder) {
-    const t = w.s.tickets[id];
-    if (!t || w.now < t.lateAtMs) continue;
-    const late = Math.floor((w.now - t.lateAtMs) / 1000);
-    if (t.lateSecondsCharged === 0 && w.now - t.lateAtMs < w.ctx.tuning.sim.tickMs)
-      w.emit({ type: 'ticketLate', ticketId: t.id, table: t.table });
-    if (late > t.lateSecondsCharged) {
-      seconds += late - t.lateSecondsCharged;
-      w.ticket(id).lateSecondsCharged = late;
-    }
+  const { score, manager, sim } = w.ctx.tuning;
+  let drain = 0;
+  for (const t of w.liveTickets()) {
+    t.courses.forEach((c, courseIdx) => {
+      if (c.lateAtMs === null || c.sentAtMs !== null || w.now < c.lateAtMs) return;
+      if (c.lateSecondsCharged === 0 && w.now - c.lateAtMs < sim.tickMs)
+        w.emit({ type: 'ticketLate', ticketId: t.id, table: t.table, courseIdx });
+      const late = Math.floor((w.now - c.lateAtMs) / 1000);
+      if (late <= c.lateSecondsCharged) return;
+      const mult = t.flags.pushed ? manager.pushDrainMultiplier : 1;
+      drain += (late - c.lateSecondsCharged) * score.lateDrainPerSec * mult;
+      const course = w.ticket(t.id).courses[courseIdx];
+      if (course) course.lateSecondsCharged = late;
+    });
   }
-  if (seconds > 0) w.health(-score.lateDrainPerSec * seconds, 'late');
+  if (drain > 0) w.health(-drain, 'late');
 }
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 
 /** Build the end-of-shift summary (GDD §6). Pure function of state + tuning. */
-export function summarize(s: SimState, outcome: 'won' | 'lost', ctx: SimContext): ShiftSummary {
+export function summarize(
+  s: SimState,
+  outcome: 'won' | 'lost',
+  lostBy: ShiftSummary['lostBy'],
+  ctx: SimContext,
+): ShiftSummary {
   const { score } = ctx.tuning;
   const f = score.final;
   const st = s.stats;
   const avgTicketMs = st.ticketsCleared > 0 ? Math.round(st.ticketTimeSumMs / st.ticketsCleared) : 0;
-  // Ticket Time sub-score also counts tickets still open at the end, at their age then,
-  // so abandoning tickets can't produce a perfect time score (found in Phase 2 playtest).
-  const openAges = s.railOrder.map((id) => s.nowMs - (s.tickets[id]?.printedAtMs ?? s.nowMs));
-  const timedCount = st.ticketsCleared + openAges.length;
+  const avgCourseMs = st.coursesCompleted > 0 ? Math.round(st.courseTimeSumMs / st.coursesCompleted) : 0;
+
+  // Ticket Time counts courses still open at the end at their age then (D-040), so abandoning loses.
+  const openAges: number[] = [];
+  for (const id of s.railOrder)
+    for (const c of s.tickets[id]?.courses ?? [])
+      if (c.readyAtMs !== null && c.sentAtMs === null) openAges.push(s.nowMs - c.readyAtMs);
+  const timedCount = st.coursesCompleted + openAges.length;
   const timedAvgMs =
-    timedCount > 0 ? (st.ticketTimeSumMs + openAges.reduce((a, b) => a + b, 0)) / timedCount : 0;
+    timedCount > 0 ? (st.courseTimeSumMs + openAges.reduce((a, b) => a + b, 0)) / timedCount : 0;
 
   const health = clamp((s.health / score.maxHealth) * 100);
-  const time = timedCount === 0 ? 0 : clamp(100 * (1 - (timedAvgMs - f.targetTicketMs) / f.targetTicketMs));
+  const time = timedCount === 0 ? 0 : clamp(100 * (1 - (timedAvgMs - f.targetCourseMs) / f.targetCourseMs));
   const judged = st.errorsCaught + st.errorsEscaped;
   const accuracy = judged === 0 ? 100 : clamp((100 * st.errorsCaught) / judged);
-  const pass = clamp(100 - f.deadPlateCost * st.platesDied - f.incompleteSendCost * st.incompleteSends);
+  const pass = clamp(
+    100 -
+      f.deadPlateCost * st.platesDied -
+      f.incompleteSendCost * st.incompleteSends -
+      f.earlyLandingCost * (st.earlyLandings + st.barViolations),
+  );
 
   const total =
     health * f.healthWeight + time * f.timeWeight + accuracy * f.accuracyWeight + pass * f.passWeight;
@@ -48,6 +64,7 @@ export function summarize(s: SimState, outcome: 'won' | 'lost', ctx: SimContext)
 
   return {
     outcome,
+    lostBy,
     nightId: s.nightId,
     seed: s.seed,
     health: s.health,
@@ -61,6 +78,7 @@ export function summarize(s: SimState, outcome: 'won' | 'lost', ctx: SimContext)
     },
     avgTicketMs,
     worstTicketMs: st.ticketTimeMaxMs,
+    avgCourseMs,
     endedAtMs: s.nowMs,
     ticketsLeft: s.railOrder.length,
     stats: structuredClone(st),

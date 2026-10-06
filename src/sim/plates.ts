@@ -9,6 +9,9 @@ export interface ItemSpec {
   mods: readonly string[];
 }
 
+/** Everything that can be wrong with a plate. 'noAllergyPick' = allergy seat without the allergy flag. */
+export type PlateErrorKind = PlateDefectKind | 'noAllergyPick';
+
 const FALLBACK: Record<PlateDefectKind, PlateDefectKind | null> = {
   wrongDoneness: 'wrongMod',
   missingComponent: 'wrongMod',
@@ -18,24 +21,30 @@ const FALLBACK: Record<PlateDefectKind, PlateDefectKind | null> = {
 
 /**
  * What the kitchen actually puts on the plate: the spec, altered by `defect` if any.
- * If a defect kind can't apply to this item it falls back (FALLBACK chain); a defect may fizzle.
+ * If a defect kind can't apply to this item it falls back (FALLBACK chain); a defect may fizzle (D-037).
  */
 export function buildPlate(
   ctx: SimContext,
   spec: ItemSpec,
   defect: PlateDefectKind | null,
   rng: Rng,
+  allergyPick = false,
 ): PlateBuild {
   let kind = defect;
   while (kind) {
     const build = tryDefect(ctx, spec, kind, rng);
-    if (build) return build;
+    if (build) return { ...build, allergyPick };
     kind = FALLBACK[kind];
   }
-  return { menuId: spec.menuId, mods: [...spec.mods] };
+  return { menuId: spec.menuId, mods: [...spec.mods], allergyPick };
 }
 
-function tryDefect(ctx: SimContext, spec: ItemSpec, kind: PlateDefectKind, rng: Rng): PlateBuild | null {
+function tryDefect(
+  ctx: SimContext,
+  spec: ItemSpec,
+  kind: PlateDefectKind,
+  rng: Rng,
+): Omit<PlateBuild, 'allergyPick'> | null {
   const def = menuDef(ctx, spec.menuId);
   const kindOf = (id: string) => modDef(ctx, id).kind;
   const mods = [...spec.mods];
@@ -77,8 +86,17 @@ function tryDefect(ctx: SimContext, spec: ItemSpec, kind: PlateDefectKind, rng: 
   }
 }
 
-/** Compare what was ordered with what was made. null = correct plate. */
-export function plateError(ctx: SimContext, spec: ItemSpec, build: PlateBuild): PlateDefectKind | null {
+/**
+ * Compare what was ordered with what was made. null = correct plate.
+ * `needsPick`: this plate is for the allergy seat; missing the allergy pick outranks every other error.
+ */
+export function plateError(
+  ctx: SimContext,
+  spec: ItemSpec,
+  build: PlateBuild,
+  needsPick = false,
+): PlateErrorKind | null {
+  if (needsPick && !build.allergyPick) return 'noAllergyPick';
   if (spec.menuId !== build.menuId) return 'wrongDish';
   const missing = spec.mods.filter((m) => !build.mods.includes(m));
   const extra = build.mods.filter((m) => !spec.mods.includes(m));
@@ -93,4 +111,12 @@ export function plateError(ctx: SimContext, spec: ItemSpec, build: PlateBuild): 
 export function rollDefect(ctx: SimContext, rate: number, rng: Rng): PlateDefectKind | null {
   if (!rng.chance(rate)) return null;
   return rng.weighted(ctx.tuning.defects.kindWeights as Record<PlateDefectKind, number>);
+}
+
+/** Cook time for one make (ms, before drag/jitter): tier + per-mod deltas (D-053). */
+export function baseCookMs(ctx: SimContext, spec: ItemSpec): number {
+  const { cook } = ctx.tuning;
+  const deltas = cook.modDeltaMs as Readonly<Record<string, number>>;
+  const def = menuDef(ctx, spec.menuId);
+  return cook.tierMs[def.cookTier] + spec.mods.reduce((sum, m) => sum + (deltas[m] ?? 0), 0);
 }

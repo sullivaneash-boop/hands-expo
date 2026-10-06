@@ -37,7 +37,7 @@ describe('scoring (2.5)', () => {
 
   it('late tickets drain lateDrainPerSec per whole second after grace', () => {
     const h = new Harness(makeCtx([ticketAt(0, oneBurger)])).tick();
-    const lateAt = h.ticket.lateAtMs;
+    const lateAt = h.ticket.courses[0]!.lateAtMs!;
     h.until(lateAt - 50);
     expect(h.state.health).toBe(100);
     h.until(lateAt);

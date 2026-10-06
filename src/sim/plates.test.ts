@@ -24,7 +24,7 @@ describe('plate builds and defects', () => {
   it('no defect → identical build, no error', () => {
     for (const spec of specs) {
       const build = buildPlate(ctx, spec, null, new Rng(seedRng(1)));
-      expect(build).toEqual(spec);
+      expect(build).toEqual({ ...spec, allergyPick: false });
       expect(plateError(ctx, spec, build)).toBeNull();
     }
   });
@@ -44,16 +44,22 @@ describe('plate builds and defects', () => {
 
   it('classifies errors', () => {
     const spec = { menuId: 'burger', mods: ['medium', 'no_onion', 'fries'] };
-    expect(plateError(ctx, spec, { menuId: 'strip', mods: [] })).toBe('wrongDish');
-    expect(plateError(ctx, spec, { menuId: 'burger', mods: ['rare', 'no_onion', 'fries'] })).toBe(
-      'wrongDoneness',
-    );
-    expect(plateError(ctx, spec, { menuId: 'burger', mods: ['medium', 'no_onion'] })).toBe(
-      'missingComponent',
-    );
-    expect(plateError(ctx, spec, { menuId: 'burger', mods: ['medium', 'fries'] })).toBe('wrongMod');
-    expect(plateError(ctx, spec, { menuId: 'burger', mods: ['medium', 'no_onion', 'side_salad'] })).toBe(
+    expect(plateError(ctx, spec, { menuId: 'strip', mods: [], allergyPick: false })).toBe('wrongDish');
+    expect(
+      plateError(ctx, spec, { menuId: 'burger', mods: ['rare', 'no_onion', 'fries'], allergyPick: false }),
+    ).toBe('wrongDoneness');
+    expect(
+      plateError(ctx, spec, { menuId: 'burger', mods: ['medium', 'no_onion'], allergyPick: false }),
+    ).toBe('missingComponent');
+    expect(plateError(ctx, spec, { menuId: 'burger', mods: ['medium', 'fries'], allergyPick: false })).toBe(
       'wrongMod',
     );
+    expect(
+      plateError(ctx, spec, {
+        menuId: 'burger',
+        mods: ['medium', 'no_onion', 'side_salad'],
+        allergyPick: false,
+      }),
+    ).toBe('wrongMod');
   });
 });

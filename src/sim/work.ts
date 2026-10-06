@@ -11,8 +11,10 @@ import {
   type Ticket,
 } from './state';
 
+type MapKey = 'tickets' | 'plates' | 'interrupts';
+
 /**
- * Copy-on-write working state for one step. Systems mutate `w.s` through the helpers below;
+ * Copy-on-write working state for one step (D-036). Systems mutate `w.s` through the helpers below;
  * untouched entities keep their previous object identity so React selectors don't re-render.
  */
 export class Work {
@@ -22,7 +24,7 @@ export class Work {
   readonly events: SimEvent[] = [];
   readonly rng: Record<RngStream, Rng>;
   private touched = new Set<string>();
-  private copiedMaps = new Set<'tickets' | 'plates' | 'interrupts'>();
+  private copiedMaps = new Set<MapKey>();
   private statsCopied = false;
 
   constructor(
@@ -52,7 +54,7 @@ export class Work {
     return this.s.ids.orderNo;
   }
 
-  private ownMap<K extends 'tickets' | 'plates' | 'interrupts'>(key: K): Record<string, SimState[K][string]> {
+  private ownMap<K extends MapKey>(key: K): Record<string, SimState[K][string]> {
     if (!this.copiedMaps.has(key)) {
       (this.s as Record<K, unknown>)[key] = { ...this.s[key] };
       this.copiedMaps.add(key);
@@ -119,9 +121,21 @@ export class Work {
     this.emit({ type: 'healthChanged', delta, applied, reason, health: this.s.health });
   }
 
+  /** Live tickets in rail order. */
+  liveTickets(): Ticket[] {
+    return this.s.railOrder.map((id) => this.s.tickets[id]).filter((t): t is Ticket => t !== undefined);
+  }
+
   finish(): SimState {
     const rng = {} as Record<RngStream, SimState['rng'][RngStream]>;
     for (const stream of RNG_STREAMS) rng[stream] = this.rng[stream].state;
     return { ...this.s, rng };
   }
+}
+
+/** Uniform integer in [range[0], range[1]] from a tuning pair. */
+export function between(rng: Rng, range: readonly number[]): number {
+  const lo = range[0] ?? 0;
+  const hi = range[1] ?? lo;
+  return rng.int(lo, hi);
 }

@@ -32,3 +32,16 @@ export function findItem(ticket: Ticket, itemId: string): ItemRef | null {
 export function allItems(ticket: Ticket): TicketItem[] {
   return ticket.courses.flatMap((c) => c.items);
 }
+
+/** Done = nothing left to make or send for this item. */
+export const itemDone = (i: TicketItem) => i.state === 'sent' || i.state === 'void';
+
+/** Does this item's plate need the allergy pick? */
+export const needsAllergyPick = (ticket: Ticket, item: TicketItem) =>
+  ticket.allergy !== null && item.seat === ticket.allergy.seat;
+
+/** Grace window for a course, from when it becomes ready. */
+export function courseGraceMs(ctx: SimContext, course: Course): number {
+  const live = course.items.filter((i) => i.state !== 'void').length;
+  return ctx.tuning.tickets.graceBaseMs + ctx.tuning.tickets.gracePerItemMs * live;
+}

@@ -4,10 +4,10 @@
  */
 export type DebugAction =
   | { kind: 'noop' }
-  /** Print a random valid ticket now. */
+  /** Print a random valid ticket now (uses tonight's generator settings). */
   | { kind: 'spawnTicket' }
-  /** Trigger an interrupt now (random live ticket if no table given). */
-  | { kind: 'triggerInterrupt'; interrupt: string; table?: number }
+  /** Trigger an interrupt now. `table` targets a live ticket; `arg` = menu id / station id. */
+  | { kind: 'triggerInterrupt'; interrupt: string; table?: number; arg?: string }
   | { kind: 'setHealth'; health: number };
 
 export type PlayerCommand =
@@ -20,4 +20,8 @@ export type PlayerCommand =
   /** Player opened a plate's build card (metrics only; no rule effect). */
   | { type: 'check'; plateId: string }
   | { type: 'answer'; interruptId: string; choice: string }
+  /** Flag an allergy ticket to the line so the kitchen follows protocol (D-009). */
+  | { type: 'ackAllergy'; ticketId: string }
+  /** Resolve an 86'd item: substitute another menu item, or void it (subMenuId null). */
+  | { type: 'resolve86'; ticketId: string; itemId: string; subMenuId: string | null }
   | { type: 'debug'; action: DebugAction };

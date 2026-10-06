@@ -1,36 +1,43 @@
-import type { PlateDefectKind } from '../../data/schema';
 import type { PlayerCommand } from '../commands';
-import { plateError, rollDefect } from '../plates';
+import { needsAllergyPick } from '../lookup';
+import { plateError, type PlateErrorKind } from '../plates';
 import type { Course, Plate } from '../state';
 import type { Work } from '../work';
-import { startCook } from './kitchen';
+import { remake } from './kitchen';
+import { afterCourseProgress } from './tickets';
 
 /** Send every plate of a course that's in the window. */
 export function send(w: Work, cmd: Extract<PlayerCommand, { type: 'send' }>): void {
-  const { score, pass } = w.ctx.tuning;
+  const { score, pass, manager, allergy } = w.ctx.tuning;
   const reject = (reason: string) => w.emit({ type: 'commandRejected', command: cmd, reason });
   const prevCourse = w.s.tickets[cmd.ticketId]?.courses[cmd.courseIdx];
   if (!prevCourse) return reject('no such course');
-  const upItems = prevCourse.items.filter((i) => i.state === 'up' && i.plateId);
-  if (upItems.length === 0) return reject('nothing in the window for this course');
+  if (!prevCourse.items.some((i) => i.state === 'up' && i.plateId))
+    return reject('nothing in the window for this course');
 
   const ticket = w.ticket(cmd.ticketId);
   const course = ticket.courses[cmd.courseIdx] as Course;
   const wasSent = course.items.filter((i) => i.state === 'sent').length;
-  const errors: PlateDefectKind[] = [];
+  const errors: PlateErrorKind[] = [];
   const upTimes: number[] = [];
+  const errMult = ticket.flags.vip ? manager.vipPenaltyMultiplier : 1;
 
   for (const item of course.items) {
     if (item.state !== 'up' || !item.plateId) continue;
     const plate = w.s.plates[item.plateId] as Plate;
     upTimes.push(plate.upAtMs);
-    const err = plateError(w.ctx, item, plate.build);
+    const err = plateError(w.ctx, item, plate.build, needsAllergyPick(ticket, item));
     if (err) {
       errors.push(err);
       ticket.escapedErrors++;
       w.stats.errorsEscaped++;
-      if (err === 'wrongDish') w.health(score.wrongDishSent, 'wrongDishSent');
-      else w.health(score.wrongModSent, 'wrongModSent');
+      if (err === 'noAllergyPick') {
+        w.stats.allergyIncidents++;
+        w.health(score.allergyIncident, 'allergyIncident');
+        w.emit({ type: 'allergyIncident', ticketId: ticket.id, table: ticket.table });
+        if (allergy.incidentEndsShift[w.s.nightId]) w.s.forcedLoss = 'allergy';
+      } else if (err === 'wrongDish') w.health(score.wrongDishSent * errMult, 'wrongDishSent');
+      else w.health(score.wrongModSent * errMult, 'wrongModSent');
     }
     removePlate(w, plate.id);
     item.state = 'sent';
@@ -38,16 +45,27 @@ export function send(w: Work, cmd: Extract<PlayerCommand, { type: 'send' }>): vo
     w.stats.platesSent++;
   }
 
-  const complete = course.items.every((i) => i.state === 'sent');
+  const complete = course.items.every((i) => i.state === 'sent' || i.state === 'void');
   if (!complete) {
     w.stats.incompleteSends++;
     w.health(score.incompleteSend, 'incompleteSend');
   }
-  // Sync bonus: the whole course (2+ plates) went in one send, landed together, and was clean.
+  // The table wasn't ready for this course yet (fired a HOLD course early and sent it).
+  const early = course.readyAtMs === null || w.now < course.readyAtMs;
+  if (early) {
+    w.stats.earlyLandings++;
+    w.health(score.landedEarly, 'landedEarly');
+  }
+  if (ticket.flags.notBeforeMs !== null && w.now < ticket.flags.notBeforeMs) {
+    w.stats.barViolations++;
+    w.health(score.sentBeforeBar, 'sentBeforeBar');
+  }
+  // Sync bonus (D-038): the whole course (2+ plates) went in one send, on time, landed together, clean.
   const synced =
     complete &&
+    !early &&
     wasSent === 0 &&
-    course.items.length >= 2 &&
+    upTimes.length >= 2 &&
     errors.length === 0 &&
     Math.max(...upTimes) - Math.min(...upTimes) <= pass.syncWindowMs;
   if (synced) {
@@ -62,23 +80,9 @@ export function send(w: Work, cmd: Extract<PlayerCommand, { type: 'send' }>): vo
     errors,
     complete,
     synced,
+    early,
   });
-
-  if (ticket.courses.every((c) => c.items.every((i) => i.state === 'sent'))) clearTicket(w, ticket.id);
-}
-
-function clearTicket(w: Work, ticketId: string): void {
-  const ticket = w.s.tickets[ticketId];
-  if (!ticket) return;
-  const ticketTimeMs = w.now - ticket.printedAtMs;
-  const clean = ticket.escapedErrors === 0;
-  w.stats.ticketsCleared++;
-  w.stats.ticketTimeSumMs += ticketTimeMs;
-  w.stats.ticketTimeMaxMs = Math.max(w.stats.ticketTimeMaxMs, ticketTimeMs);
-  if (clean) w.health(w.ctx.tuning.score.tableComplete, 'tableComplete');
-  w.s.railOrder = w.s.railOrder.filter((id) => id !== ticketId);
-  w.deleteTicket(ticketId);
-  w.emit({ type: 'ticketCleared', ticketId, table: ticket.table, ticketTimeMs, clean });
+  afterCourseProgress(w, ticket.id, cmd.courseIdx);
 }
 
 /** Reject a plate: bin it and remake on the fly. */
@@ -89,7 +93,7 @@ export function refire(w: Work, cmd: Extract<PlayerCommand, { type: 'refire' }>)
   const item = ticket.courses[plate.courseIdx]?.items.find((i) => i.id === plate.itemId);
   if (!item) return w.emit({ type: 'commandRejected', command: cmd, reason: 'plate has no item' });
 
-  const correct = plateError(w.ctx, item, plate.build) !== null;
+  const correct = plateError(w.ctx, item, plate.build, needsAllergyPick(ticket, item)) !== null;
   if (correct) {
     w.stats.errorsCaught++;
     w.health(w.ctx.tuning.score.refireCorrect, 'refireCorrect');
@@ -124,15 +128,6 @@ export function updatePass(w: Work): void {
     remake(w, plate.ticketId, plate.courseIdx, plate.itemId);
     w.emit({ type: 'plateDied', plateId, ticketId: plate.ticketId });
   }
-}
-
-function remake(w: Work, ticketId: string, courseIdx: number, itemId: string): void {
-  const { defects } = w.ctx.tuning;
-  const ticket = w.ticket(ticketId);
-  const item = ticket.courses[courseIdx]?.items.find((i) => i.id === itemId);
-  if (!item) return;
-  const rate = defects.ratePerNight[w.s.nightId] * defects.onTheFlyRateFactor;
-  startCook(w, ticket, courseIdx, item, rollDefect(w.ctx, rate, w.rng.defects), true);
 }
 
 function removePlate(w: Work, plateId: string): void {

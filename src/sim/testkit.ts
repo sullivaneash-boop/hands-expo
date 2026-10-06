@@ -1,19 +1,30 @@
 /** Test helpers (used only by *.test.ts). Deterministic tuning: no jitter, no random defects. */
 import { tuning, type NightId, type Tuning } from '../config/tuning';
 import { content } from '../data';
-import type { Content, ShiftBeat, TicketTemplate } from '../data/schema';
+import type { Content, FeatureFlag, ShiftBeat, TicketTemplate } from '../data/schema';
 import { createSim, step, type PlayerCommand, type SimContext, type SimEvent, type SimState } from '.';
 
+const noProcedural = { firstTicketMs: 0, segments: [], twoCourseChance: 0, allergyChance: 0, interrupts: {} };
+
+/** No jitter, no random defects, no kitchen pick misses, no procedural tickets/interrupts. */
 export const quietTuning: Tuning = {
   ...tuning,
   cook: { ...tuning.cook, jitterPct: 0 },
   defects: { ...tuning.defects, ratePerNight: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+  allergy: { ...tuning.allergy, pickMissRatePerNight: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+  courses: { eatMs: [15_000, 15_000] },
+  nights: { 1: noProcedural, 2: noProcedural, 3: noProcedural, 4: noProcedural, 5: noProcedural },
 };
 
-export function makeCtx(beats: readonly ShiftBeat[], t: Tuning = quietTuning): SimContext {
+export function makeCtx(
+  beats: readonly ShiftBeat[],
+  t: Tuning = quietTuning,
+  features: readonly FeatureFlag[] = [],
+  nightId: NightId = 1,
+): SimContext {
   const c: Content = {
     ...content,
-    shifts: [{ id: 1, name: 'Test', clockStartHour: 17, features: [], beats }],
+    shifts: [{ id: nightId, name: 'Test', tagline: 'test', clockStartHour: 17, features, beats }],
   };
   return { tuning: t, content: c };
 }
@@ -55,7 +66,7 @@ export class Harness {
   constructor(
     readonly ctx: SimContext,
     seed = 1,
-    nightId: NightId = 1,
+    nightId: NightId = ctx.content.shifts[0]?.id ?? 1,
   ) {
     this.state = createSim(seed, nightId, ctx);
   }

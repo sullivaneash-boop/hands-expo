@@ -14,7 +14,7 @@ describe('server_status interrupt (2.6)', () => {
   it('arrives targeting the requested table, with server patience', () => {
     const h = new Harness(makeCtx([ticketAt(0, oneBurger), ask(1_000, 12)])).until(1_000);
     const it0 = Object.values(h.state.interrupts)[0]!;
-    expect(it0).toMatchObject({ table: 12, server: 'maya', source: 'server' });
+    expect(it0).toMatchObject({ table: 12, speaker: 'maya', source: 'server' });
     expect(it0.expiresAtMs - it0.arrivedAtMs).toBe(T.interrupts.patienceMs.server);
     expect(h.of('interruptArrived')).toHaveLength(1);
   });

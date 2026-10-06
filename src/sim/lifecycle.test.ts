@@ -19,7 +19,7 @@ describe('schedule (2.2)', () => {
 
   it('computes lateAt from grace base + per item', () => {
     const h = new Harness(makeCtx([ticketAt(1_000, burgerAndSalad)])).until(1_000);
-    expect(h.ticket.lateAtMs).toBe(1_000 + T.tickets.graceBaseMs + 2 * T.tickets.gracePerItemMs);
+    expect(h.ticket.courses[0]!.lateAtMs!).toBe(1_000 + T.tickets.graceBaseMs + 2 * T.tickets.gracePerItemMs);
   });
 });
 
@@ -35,7 +35,11 @@ describe('fire + kitchen (2.3)', () => {
     h.until(firedAt + STD);
     expect(h.state.windowOrder).toHaveLength(1);
     expect(h.of('plateUp')).toHaveLength(1);
-    expect(h.plateFor(0)!.build).toEqual({ menuId: 'burger', mods: ['medium', 'no_onion', 'fries'] });
+    expect(h.plateFor(0)!.build).toEqual({
+      menuId: 'burger',
+      mods: ['medium', 'no_onion', 'fries'],
+      allergyPick: false,
+    });
   });
 
   it('fires a single item, and rejects firing it twice', () => {
