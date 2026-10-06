@@ -9,9 +9,12 @@ export type SpriteMap = Record<string, [offsetMs: number, durationMs: number] | 
 let howl: Howl | null = null;
 
 export const AudioManager = {
-  load(src: string[], sprite: SpriteMap): void {
+  load(src: string[], sprite: SpriteMap, format?: string[]): void {
     howl?.unload();
-    howl = new Howl({ src, sprite, preload: true });
+    howl = new Howl({ src, sprite, preload: true, ...(format ? { format } : {}) });
+  },
+  setMuted(muted: boolean): void {
+    howl?.mute(muted);
   },
   play(id: string, opts: { volume?: number; rate?: number } = {}): void {
     if (!howl) return;
