@@ -13,6 +13,21 @@
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 
+/*
+ * Brand tokens (D-046). Where the brand sheet and STYLE.md disagree, STYLE.md wins:
+ *   --ticket-paper  brand #F2EDE4 → STYLE Ticket White  #F2EFE6
+ *   --heat-amber    brand #E8A13A → STYLE Heat Lamp Amber #E8A33D
+ *   --ticket-red    brand #C8372D → STYLE Rush Red       #C8423B
+ *   --thermal-black brand #1A1A1A (no STYLE equivalent; sits between Walk-in Night and Thermal Ink)
+ * Brand SVGs use var(--thermal-black, #1a1a1a), so inlined art can be themed.
+ */
+:root {
+  --thermal-black: #1a1a1a;
+  --ticket-paper: #f2efe6;
+  --heat-amber: #e8a33d;
+  --ticket-red: #c8423b;
+}
+
 html,
 body,
 #root {

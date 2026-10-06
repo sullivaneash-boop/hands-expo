@@ -147,3 +147,26 @@ _Reason:_ Each extra sound is a few lines of synthesis, and the interrupt cue is
 
 **D-045 — 2026-10-06 — Window plates show table, seat and dish name only. Doneness, mods and sides appear only on the CHECK card.**
 _Reason:_ CHECK must cost something (a click and a read), or there's no QC skill. Report 02: "the player should lose because they lost the thread."
+
+### Brand assets (owner request, `feat/brand-assets`)
+
+**D-046 — 2026-10-06 — Brand files live in `public/assets/brand/` (owner-specified) as unhashed, stable URLs. `vercel.json`'s immutable cache rule now matches `/assets/((?!brand/).*)`, so brand files get Vercel's default revalidating cache. Amends D-029.**
+_Reason:_ Favicons, the manifest icon, the apple-touch icon, and the OG image are fetched by browsers and crawlers at fixed URLs, so they can't be content-hashed. Under the old rule they'd have been cached as immutable for a year, and a replaced logo would never update. Game media (audio sprite, fonts) stays in `src/assets/` (hashed).
+
+**D-047 — 2026-10-06 — Brand palette tokens are added to `:root` in `src/index.css`. Where the brand sheet differs from STYLE.md, STYLE.md wins per the owner's rule: `--ticket-paper` #F2EFE6 (brand #F2EDE4), `--heat-amber` #E8A33D (brand #E8A13A), `--ticket-red` #C8423B (brand #C8372D). `--thermal-black` keeps #1A1A1A because STYLE.md has no equivalent. The `<meta name="theme-color">` moves from #0E1012 to #1A1A1A to match the manifest. Flagged for the owner.**
+_Reason:_ The owner's instruction. The brand art itself uses #C8372D and #1A1A1A, so the owner may prefer to update STYLE.md to the brand values instead; that's their call, and it's a one-line token change.
+
+**D-048 — 2026-10-06 — SVG cleanup was limited to what the owner allowed:** each file's Illustrator `id="Layer_2" data-name="Layer 2"` was stripped, and the one exact palette fill, `#1a1a1a`, became `var(--thermal-black, #1a1a1a)` in logo-wordmark, logo-wordmark-mono and logo-lockup-stacked. `#c8372d` was **not** tokenized: `--ticket-red` resolves to STYLE's #C8423B, so swapping it would recolor the art. No empty groups existed.
+_Reason:_ With the fallback, rendering is identical. Verified by rasterizing all five SVGs before and after with sharp: 0 differing bytes.
+
+**D-049 — 2026-10-06 — Added `sharp` 0.35.5 (devDependency, pinned) and `scripts/build-icons.mjs` (`npm run build:icons`), which generates favicon.svg, favicon-32.png, icon-512.png and apple-touch-icon.png from icon-mark.svg.**
+_Reason:_ Owner request, so icons can be regenerated whenever the mark changes. Dev-only; not in the shipped bundle.
+
+**D-050 — 2026-10-06 — The existing Phase 2 title screen was restyled to the brand spec (keyart full bleed, stacked lockup in the upper third, one START SHIFT button) rather than adding a second screen. The manager's how-to sticky note stays (it's the game's only instructions and isn't a button). The lockup's empty viewBox margin is cropped in CSS (`aspect-ratio` + `object-fit`); the file is untouched. No inverse lockup is used because the stacked lockup carries its own paper ground.**
+_Reason:_ A title screen already existed, and the owner asked not to edit the art. Verified at 1280×800 and 375×812 (no horizontal scroll; START SHIFT enters Night 1).
+
+**D-051 — 2026-10-06 — `feat/brand-assets` is branched from `p2/grey-box`, not `main`.**
+_Reason:_ Phase 2 isn't merged yet, and the title screen and game loop the brand wires into only exist there. Merge order: `p2/grey-box` → `main`, then `feat/brand-assets`.
+
+**D-052 — 2026-10-06 — Open Graph/Twitter `og:image` uses the absolute production URL `https://hands-expo.vercel.app/assets/brand/og-image.png`.**
+_Reason:_ Crawlers require absolute image URLs. The file hasn't been provided, so link previews show no image until `og-image.png` is dropped into `public/assets/brand/`. No other change is needed.

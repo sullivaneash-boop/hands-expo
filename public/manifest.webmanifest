@@ -1,0 +1,17 @@
+{
+  "name": "HANDS!",
+  "short_name": "HANDS!",
+  "description": "Run the expo window. Call the tickets. Get the food out.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A1A1A",
+  "theme_color": "#1A1A1A",
+  "icons": [
+    {
+      "src": "/assets/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

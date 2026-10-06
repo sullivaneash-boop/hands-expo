@@ -27,6 +27,10 @@ Tonal references: _Papers, Please_ (desk loop, documents as gameplay), _VA-11 Ha
 | `--color-phosphor` | `#8FD19E` | In-world monitor text (summary screen, clock)                |
 | `--color-rush`     | `#C8423B` | Late, 86'd, danger. Appears **only** when something is wrong |
 
+### Brand assets (D-046 – D-050)
+
+Brand files live in `public/assets/brand/` (stable URLs). Use the **dark** wordmark (`logo-wordmark.svg`) on light grounds, and `logo-wordmark-inverse.svg` on dark grounds. The **stacked lockup** is a self-contained paper ticket and works on either. `icon-mark.svg` is the source for all favicons and app icons: run `npm run build:icons` after changing it. Brand CSS tokens (`--thermal-black`, `--ticket-paper`, `--heat-amber`, `--ticket-red`) are in `src/index.css`; where the brand sheet's values differ from §2, §2 wins (D-047).
+
 ## 3. Typography
 
 | Use                         | Font                             | License     | Phase        |

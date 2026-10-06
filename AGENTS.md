@@ -23,17 +23,18 @@
 
 ## 2. Folder rules (see ARCHITECTURE §3)
 
-| Folder       | Contains                                                                | May import                                                                         |
-| ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `src/config` | `tuning.ts` only                                                        | nothing                                                                            |
-| `src/data`   | typed content + `schema.ts` + `validate.ts`; no logic beyond validation | `src/data`, `src/config` (types)                                                   |
-| `src/sim`    | pure rules: state, commands, events, systems, rng, bot                  | `src/sim`, `src/data`, `src/config`                                                |
-| `src/engine` | rAF loop, bus, session, runtime, save                                   | everything except `src/ui`                                                         |
-| `src/store`  | Zustand mirror + UI-only state                                          | `src/sim` (types only), D-031                                                      |
-| `src/audio`  | Howler singleton + event→sound map                                      | `src/sim` (event types), `src/engine/bus`                                          |
-| `src/ui`     | React components                                                        | `src/store`, `src/engine` (dispatch), `src/data` (display text), `src/sim` (types) |
-| `src/assets` | hashed media (audio, fonts, img); every file logged in ASSETS.md        | nothing                                                                            |
-| `scripts`    | Node scripts (balance, asset gen), run with `tsx`                       | `src/sim`, `src/data`, `src/config`                                                |
+| Folder                | Contains                                                                                                                       | May import                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `src/config`          | `tuning.ts` only                                                                                                               | nothing                                                                            |
+| `src/data`            | typed content + `schema.ts` + `validate.ts`; no logic beyond validation                                                        | `src/data`, `src/config` (types)                                                   |
+| `src/sim`             | pure rules: state, commands, events, systems, rng, bot                                                                         | `src/sim`, `src/data`, `src/config`                                                |
+| `src/engine`          | rAF loop, bus, session, runtime, save                                                                                          | everything except `src/ui`                                                         |
+| `src/store`           | Zustand mirror + UI-only state                                                                                                 | `src/sim` (types only), D-031                                                      |
+| `src/audio`           | Howler singleton + event→sound map                                                                                             | `src/sim` (event types), `src/engine/bus`                                          |
+| `src/ui`              | React components                                                                                                               | `src/store`, `src/engine` (dispatch), `src/data` (display text), `src/sim` (types) |
+| `src/assets`          | hashed media (audio, fonts, img); every file logged in ASSETS.md                                                               | nothing                                                                            |
+| `public/assets/brand` | brand logos, key art, favicons/app icons (stable URLs, D-046); regenerate icons with `npm run build:icons`; never edit the art | nothing                                                                            |
+| `scripts`             | Node scripts (balance, asset gen), run with `tsx`                                                                              | `src/sim`, `src/data`, `src/config`                                                |
 
 ## 3. Naming
 
