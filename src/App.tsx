@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AudioManager } from './audio';
+import { AMBIENCE, AudioManager } from './audio';
 import { useProgress } from './engine/save';
 import { useGameStore } from './store/useGameStore';
 import { DebugOverlay, debugEnabled } from './ui/debug/DebugOverlay';
@@ -10,8 +10,12 @@ import { GameScreen } from './ui/views/GameScreen';
 export function App() {
   const screen = useGameStore((s) => s.screen);
   const muted = useProgress((p) => p.muted);
-  // The kitchen bed plays while a shift is on screen; mute persists across visits.
-  useEffect(() => AudioManager.ambience(screen === 'playing'), [screen]);
+  const view = useGameStore((s) => s.view);
+  // Dining-room chatter plays during a shift: muffled at the pass, louder at the door. Mute persists.
+  useEffect(
+    () => AudioManager.ambience(screen !== 'playing' ? 0 : view === 'floor' ? AMBIENCE.door : AMBIENCE.pass),
+    [screen, view],
+  );
   useEffect(() => AudioManager.setMuted(muted), [muted]);
   return (
     <>

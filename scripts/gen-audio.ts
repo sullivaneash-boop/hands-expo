@@ -1,8 +1,8 @@
 /**
- * Synthesizes the game's interim audio (D-057): a soft SFX sprite + a seamless kitchen ambience loop.
- * Deterministic (seeded noise), no samples, no ffmpeg. Output is committed:
+ * Synthesizes the sounds we have no recording for (D-057, D-062): door swing, pan clang, UI tick,
+ * soft thunk, plate scrape, wilt. Printer, tear, plates and dining chatter are owner recordings
+ * (src/assets/audio/recorded). Deterministic (seeded noise), no samples, no ffmpeg. Output is committed:
  *   src/assets/audio/synth/sfx.wav + sfx.json   (Howler sprite)
- *   src/assets/audio/synth/kitchen-loop.wav      (ambience bed)
  * Run: npm run gen:audio
  * Phase 4 replaces these with recorded/CC0 sounds (STYLE.md §6); the event→sound map stays.
  */
@@ -151,70 +151,6 @@ const rnd = mulberry32(0x4a4e4453);
 
 /** Each sound is rendered into its own track, then concatenated into the sprite. */
 const SFX: Record<string, () => Track> = {
-  // Dot-matrix kitchen printer: motor hum + rows of soft head strikes + paper feed between lines.
-  print: () => {
-    const dur = 1.25;
-    const tr = new Track(RATE, dur);
-    tr.add(0, dur, (k, n) => {
-      const ph = ((110 * k) / RATE) % 1;
-      return (ph * 2 - 1) * 0.06 * Math.min(1, k / 800, (n - k) / 1500);
-    });
-    let t = 0.04;
-    for (let line = 0; line < 5; line++) {
-      const strikes = 12 + Math.floor(rnd() * 6);
-      for (let s = 0; s < strikes; s++) {
-        const g = 0.25 + rnd() * 0.15;
-        mixIn(
-          tr,
-          t,
-          filtered(RATE, 0.006, (x) => noiseBurst(x, 0, 0.006, g, rnd, (k, n) => 1 - k / n), [
-            ['bandpass', 2400 + rnd() * 600, 1.4],
-          ]),
-        );
-        t += 0.0105;
-      }
-      // line feed: a short soft whir
-      mixIn(
-        tr,
-        t + 0.01,
-        filtered(
-          RATE,
-          0.06,
-          (x) => noiseBurst(x, 0, 0.06, 0.18, rnd, (k, n) => Math.sin((Math.PI * k) / n)),
-          [['bandpass', 700, 2]],
-        ),
-      );
-      t += 0.085;
-    }
-    return tr.filter('lowpass', 5200).normalize(0.42).fades();
-  },
-
-  // Ticket tear: crackly band-limited noise.
-  tear: () => {
-    const tr = new Track(RATE, 0.32);
-    let gate = 1;
-    tr.add(0, 0.32, (k, n) => {
-      if (k % 40 === 0) gate = 0.3 + rnd() * 0.7;
-      return (rnd() * 2 - 1) * gate * Math.sin((Math.PI * k) / n) ** 0.6;
-    });
-    return tr.filter('bandpass', 2600, 0.8).normalize(0.35).fades();
-  },
-
-  // Plate landing on the stainless pass: ceramic partials + a low thud.
-  plate: () => {
-    const tr = new Track(RATE, 0.45);
-    partials(tr, 0, 0.45, [1850, 2930, 4410, 6050], [0.5, 0.32, 0.18, 0.08], [0.18, 0.11, 0.07, 0.04], 1);
-    tr.add(0, 0.12, (k) => Math.sin((2 * Math.PI * 140 * k) / RATE) * expEnv(k, RATE, 0.001, 0.035) * 0.7);
-    return tr.normalize(0.4).fades(2);
-  },
-
-  // Service bell: the "order up" ding when HANDS! goes out.
-  bell: () => {
-    const tr = new Track(RATE, 1.3);
-    partials(tr, 0, 1.3, [1568, 4327, 8467], [1, 0.35, 0.12], [0.55, 0.22, 0.09], 1);
-    return tr.filter('lowpass', 7000).normalize(0.32).fades(2);
-  },
-
   // Swing door: soft whoosh + a padded thump.
   door: () => {
     const tr = new Track(RATE, 0.6);
@@ -276,21 +212,6 @@ const SFX: Record<string, () => Track> = {
     tr.add(0, 0.03, (k) => Math.sin((2 * Math.PI * 1800 * k) / RATE) * expEnv(k, RATE, 0.0005, 0.006));
     return tr.normalize(0.18).fades(1);
   },
-
-  // Allergy incident: low two-note alarm, filtered so it isn't shrill.
-  alarm: () => {
-    const tr = new Track(RATE, 0.7);
-    for (const [t0, f] of [
-      [0, 440],
-      [0.3, 349],
-    ] as const)
-      tr.add(
-        t0,
-        0.3,
-        (k, n) => Math.sign(Math.sin((2 * Math.PI * f * k) / RATE)) * Math.min(1, k / 200, (n - k) / 400),
-      );
-    return tr.filter('lowpass', 1400).normalize(0.18).fades();
-  },
 };
 
 const GAP = 0.12;
@@ -303,61 +224,6 @@ for (const [id, tr] of tracks) {
   sprite.set(tr.data, off);
   map[id] = [Math.round((off / RATE) * 1000), Math.round((tr.data.length / RATE) * 1000)];
   off += tr.data.length + Math.round(GAP * RATE);
-}
-
-// ── Ambience: hood fan + hum + sizzle + distant clatter, seamless loop ──────
-const AMB_RATE = 16_000;
-const LOOP_S = 14;
-const XF_S = 1;
-function ambience(): Float32Array {
-  const r2 = mulberry32(0xa4b1e);
-  const tr = new Track(AMB_RATE, LOOP_S + XF_S);
-  // hood: brown noise, low-passed
-  const hood = new Track(AMB_RATE, LOOP_S + XF_S);
-  let brown = 0;
-  hood.add(0, LOOP_S + XF_S, () => {
-    brown = 0.985 * brown + (r2() * 2 - 1) * 0.12;
-    return brown;
-  });
-  hood.filter('lowpass', 420).filter('highpass', 45);
-  mixIn(tr, 0, hood.data, 1);
-  // electrical hum
-  tr.add(
-    0,
-    LOOP_S + XF_S,
-    (k) =>
-      0.015 * Math.sin((2 * Math.PI * 60 * k) / AMB_RATE) +
-      0.008 * Math.sin((2 * Math.PI * 120 * k) / AMB_RATE),
-  );
-  // sizzle bed with a slow swell
-  const sizzle = new Track(AMB_RATE, LOOP_S + XF_S);
-  sizzle.add(
-    0,
-    LOOP_S + XF_S,
-    (k) => (r2() * 2 - 1) * (0.5 + 0.5 * Math.sin((2 * Math.PI * 0.13 * k) / AMB_RATE)),
-  );
-  sizzle.filter('highpass', 3000).filter('lowpass', 7000);
-  mixIn(tr, 0, sizzle.data, 0.05);
-  // distant clinks and pan knocks
-  for (let t = 0.4; t < LOOP_S; t += 0.7 + r2() * 1.8) {
-    const clink = new Track(AMB_RATE, 0.4);
-    const base = 1400 + r2() * 1600;
-    partials(clink, 0, 0.4, [base, base * 1.58, base * 2.37], [0.5, 0.3, 0.15], [0.12, 0.07, 0.04], 1);
-    clink.filter('lowpass', 2800);
-    mixIn(tr, t, clink.data, 0.05 + r2() * 0.05);
-  }
-  // seamless: crossfade the tail into the head
-  const n = Math.round(LOOP_S * AMB_RATE);
-  const xf = Math.round(XF_S * AMB_RATE);
-  const out = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    const v = tr.data[i] ?? 0;
-    out[i] = i < xf ? v * (i / xf) + (tr.data[n + i] ?? 0) * (1 - i / xf) : v;
-  }
-  let max = 0;
-  for (const v of out) max = Math.max(max, Math.abs(v));
-  for (let i = 0; i < n; i++) out[i] = (out[i] ?? 0) * (0.5 / max);
-  return out;
 }
 
 // ── WAV writer ───────────────────────────────────────────────────────────────
@@ -386,9 +252,7 @@ const outDir = join(root, 'src/assets/audio/synth');
 rmSync(join(root, 'src/assets/audio/placeholder'), { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 const sfxBuf = wav(sprite, RATE);
-const ambBuf = wav(ambience(), AMB_RATE);
 writeFileSync(join(outDir, 'sfx.wav'), sfxBuf);
 writeFileSync(join(outDir, 'sfx.json'), JSON.stringify(map, null, 2) + '\n');
-writeFileSync(join(outDir, 'kitchen-loop.wav'), ambBuf);
+rmSync(join(outDir, 'kitchen-loop.wav'), { force: true });
 console.log(`sfx.wav ${(sfxBuf.length / 1024).toFixed(0)} KB: ${Object.keys(map).join(', ')}`);
-console.log(`kitchen-loop.wav ${(ambBuf.length / 1024).toFixed(0)} KB (${LOOP_S}s @ ${AMB_RATE} Hz)`);

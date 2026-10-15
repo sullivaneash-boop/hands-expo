@@ -199,3 +199,6 @@ _Reason:_ Expo can see the line, and seeing pans fill makes HOLD and sync decisi
 
 **D-061 — 2026-10-15 — Progress: winning night N unlocks N+1 (max 5); best grade per night is kept; mute persists. Debug builds (`?debug=1`) can pick any night on the title screen.**
 _Reason:_ ROADMAP 3.12 plus fast playtesting of later nights on previews.
+
+**D-062 — 2026-10-15 — Owner-supplied recordings replace the synthesized printer, tear and plate sounds, and dining-room chatter replaces the kitchen hum. Files ship unedited under clean names in `src/assets/audio/recorded/`.** The 20 s printer recording is played as ticket-length regions from its continuous run (short/medium/long by ticket line count) with a 140 ms fade-out, then the paper tear. The two plate clanks alternate on plates landing (quieter on HANDS!). The 130 s chatter streams (HTML5) as the bed: muffled at the pass, louder at the door. Removed per the owner: the bell, the allergy alarm, the hood/kitchen hum, and any sound on rejected clicks. Synth keeps only door, clang, tick, thunk (fired an 86'd item), scrape and wilt.
+_Reason:_ Owner direction after Phase 3 playtest. Streaming the bed avoids decoding ~46 MB of PCM; cutting regions in code keeps the original files intact. Licence/origin of the recordings is logged as "to be confirmed" in ASSETS.md.
