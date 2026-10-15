@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "build:icons": "node scripts/build-icons.mjs",
-    "balance": "tsx scripts/balance.ts"
+    "balance": "tsx scripts/balance.ts",
+    "gen:audio": "tsx scripts/gen-audio.ts"
   },
   "dependencies": {
     "howler": "2.2.4",
