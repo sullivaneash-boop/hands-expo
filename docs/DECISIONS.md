@@ -170,3 +170,32 @@ _Reason:_ Phase 2 isn't merged yet, and the title screen and game loop the brand
 
 **D-052 — 2026-10-06 — Open Graph/Twitter `og:image` uses the absolute production URL `https://hands-expo.vercel.app/assets/brand/og-image.png`.**
 _Reason:_ Crawlers require absolute image URLs. The file hasn't been provided, so link previews show no image until `og-image.png` is dropped into `public/assets/brand/`. No other change is needed.
+
+### Phase 3 — Systems, feel, balancing
+
+**D-053 — 2026-10-15 — Cook time = tier + per-modifier deltas (`tuning.cook.modDeltaMs`). Doneness moves steak and burger temps (rare −3 s … well done +5 s); protein add-ons lengthen a chop salad (+6–8 s); half chicken takes as long as a medium strip.**
+_Reason:_ Owner playtest feedback. Keyed by mod id in tuning, so new mods stay data-only plus one tuning line (keeps D-010).
+
+**D-054 — 2026-10-15 — 86 rules: an 86 flags every still-held instance on the rail (cooking items finish: "86 after these"). Firing a course with a flagged item fires the rest and costs `fired86` once per flagged item. RESOLVE offers any same-course, non-86'd substitute (made the house way: MEDIUM + default side) or VOID. Tickets rung in after the 86 print already flagged. The generator never orders an 86'd item.**
+_Reason:_ Report 02: "the game should require a resolution rather than silently deleting it."
+
+**D-055 — 2026-10-15 — Door interrupts vs. barks. Bar, manager and server news takes effect when the person _arrives_ (bar not-before, push, VIP). Answering HEARD adds a stamp to the ticket (WAIT ON BAR / PUSH / VIP), so visiting the door buys information. A fire request makes the HOLD course ready on HEARD, or on timeout (the server goes to the line) with the timeout penalty. Kitchen 86, drag and drop, and POS add-ons, are non-blocking barks shown as line chatter.**
+_Reason:_ D-019 asks interrupts to create things to remember; effects on arrival mean ignoring the door has real cost, and stamps reward going.
+
+**D-056 — 2026-10-15 — The headless bot (`src/sim/bot`) models players by skill presets (novice, average, expert) that live with the bot, not in `tuning.ts`. Balancing changes the game's tuning, never the presets.**
+_Reason:_ Tuning the player to hit a target would hide a difficulty problem. Presets describe attention: per-action time, door reaction, check/spot rates, HOLD discipline, sync habit.
+
+**D-057 — 2026-10-15 — Owner request: presentation work pulled forward from Phase 4 into Phase 3, still without sourced art or recorded audio.** Synthesized audio replaces the beeps (`npm run gen:audio`: dot-matrix printer chatter, plate clink, service bell, swing door, pan clang, soft thunk, scrape, wilt, tick, low alarm, and a 14 s kitchen ambience loop). A CSS scene: kitchen line with stations, pans and flames (drag = slow/red), plates that slide onto the pass and leave (sent/binned/wilted/dropped), tickets that print in, people who walk up to the door and leave, a door porthole cue, and stamps. All motion is transform/opacity/clip-path and off under `prefers-reduced-motion`.
+_Reason:_ Owner found the beeps obnoxious and wanted servers, plates and the kitchen to visibly move. Phase 4 still swaps in recorded/CC0 audio and real art; the event→sound map and components stay.
+
+**D-058 — 2026-10-15 — Balancing pass (3.11), 200 bot shifts per cell.** Night 1 unchanged. Nights 2–5: longer gaps between procedural tickets; fewer two-course tables on Nights 4–5 (0.4 / 0.3); sparser interrupts on Nights 3–5; manager push softened (grace 12→20 s, drain ×2→×1.5); Night 5 defect rate 0.16→0.14 and allergy chance 0.2→0.15; Night 5's scripted birthday five-top moved from 1:00 to 2:55 (the quiet beat), where it's the climax instead of a pile-up on the VIP four-top.
+_Reason:_ The baseline had a cliff: average players failed Nights 3–5 at 88–100% and experts failed Nights 4–5. Ablations showed no single interrupt was at fault; the combination of interrupts and two-course tables saturated attention, and the five-top alone added ~32 points of failure. Average fail rates are now 0 / 15 / 20.5 / 40.5 / 55% across Nights 1–5; experts fail ≤3.5% everywhere. Full table in the Phase 3 report and `scripts/out/` (gitignored).
+
+**D-059 — 2026-10-15 — Lateness is per course, from when the table is ready for it (print for non-HOLD, fire request for HOLD). The Ticket Time sub-score uses course time (ready → sent), target `targetCourseMs` 45 s. Add-on chits are their own small tickets (with their own lateness) and don't earn `tableComplete`.**
+_Reason:_ With two courses, a ticket's total time includes the guests eating, which isn't expo's fault; course time measures what expo controls.
+
+**D-060 — 2026-10-15 — The kitchen line view shows each pan's dish, table and a rough progress fill, but no exact timers or "all day" counts.**
+_Reason:_ Expo can see the line, and seeing pans fill makes HOLD and sync decisions readable. "All day" counting stays a memory task for v2 (GDD §10).
+
+**D-061 — 2026-10-15 — Progress: winning night N unlocks N+1 (max 5); best grade per night is kept; mute persists. Debug builds (`?debug=1`) can pick any night on the title screen.**
+_Reason:_ ROADMAP 3.12 plus fast playtesting of later nights on previews.

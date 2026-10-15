@@ -115,15 +115,15 @@ Every asset gets a row in `docs/ASSETS.md` (file, source URL, author, licence, d
 
 ### Placeholder strategy (Phases 1–3)
 
-| Need                     | Placeholder                                            | How                                                                                                                                                                 |
-| ------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| All SFX                  | Generated sine/square beeps                            | `scripts/gen-placeholder-audio.ts` writes 16-bit PCM WAVs plus a Howler sprite map to `src/assets/audio/placeholder/` (D-029). No ffmpeg, deterministic, committed. |
-| Print                    | 880 Hz × 3 short blips                                 | so it reads as "chatter"                                                                                                                                            |
-| Food up                  | 1320 Hz single ding                                    |                                                                                                                                                                     |
-| Interrupt arrives (Ph 3) | 440 Hz double blip                                     |                                                                                                                                                                     |
-| Error / rejected         | 220 Hz buzz                                            |                                                                                                                                                                     |
-| Ambience                 | none                                                   | silence is fine in grey-box                                                                                                                                         |
-| Visuals                  | flat Tailwind boxes in palette roles, system monospace |                                                                                                                                                                     |
+| Need                     | Placeholder                                            | How                                                                                                                     |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| All SFX                  | Synthesized sounds (D-057)                             | `npm run gen:audio` writes `src/assets/audio/synth/` (SFX sprite + ambience loop). No ffmpeg, deterministic, committed. |
+| Print                    | 880 Hz × 3 short blips                                 | so it reads as "chatter"                                                                                                |
+| Food up                  | 1320 Hz single ding                                    |                                                                                                                         |
+| Interrupt arrives (Ph 3) | 440 Hz double blip                                     |                                                                                                                         |
+| Error / rejected         | 220 Hz buzz                                            |                                                                                                                         |
+| Ambience                 | none                                                   | silence is fine in grey-box                                                                                             |
+| Visuals                  | flat Tailwind boxes in palette roles, system monospace |                                                                                                                         |
 
 The `soundMap.ts` event→sound mapping is final from Phase 2. Phase 4 only swaps the sprite file and map, never the game code.
 

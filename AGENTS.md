@@ -69,7 +69,7 @@
 
 **A sound**
 
-1. Phases 1–3: add a tone to `scripts/gen-placeholder-audio.ts` and run it.
+1. Phases 1–3: add a synthesized sound to `scripts/gen-audio.ts` and run `npm run gen:audio`.
    Phase 4+: add the source file to `assets-src/audio/`, add the ASSETS.md row, and rebuild the sprite with audiosprite.
 2. Add a `SoundDef` and map the triggering event in `src/audio/soundMap.ts`.
 3. Trigger it **only** from events via the bus, never from sim code and rarely from components (UI clicks are OK).

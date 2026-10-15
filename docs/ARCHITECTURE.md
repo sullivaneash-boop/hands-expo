@@ -77,7 +77,7 @@ hands-expo/
 ├── public/                 # unhashed static files only (favicon) — D-029
 ├── scripts/
 │   ├── balance.ts            # headless N-shift runner with bot → metrics (Phase 3)
-│   └── gen-placeholder-audio.ts  # writes beep WAVs + sprite map, no ffmpeg (Phase 2)
+│   └── gen-audio.ts            # synthesizes SFX sprite + ambience loop, no ffmpeg (D-057)
 ├── src/
 │   ├── config/
 │   │   └── tuning.ts         # THE tuning file. Every feel/difficulty number.

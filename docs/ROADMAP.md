@@ -55,6 +55,10 @@
 | 3.11 | **Tune.** Iterate `tuning.ts` toward targets (proposed: novice fails N1 <10% / N5 >70%; average fails N5 ~35–50%; expert clears all with B+)                                                                                    | Before/after metrics table in the phase report; every change logged in DECISIONS.md                              |
 | 3.12 | **Save.** Zustand persist: unlocked nights, best grades, settings; reset-progress button                                                                                                                                        | Reload keeps progress; corrupted storage falls back safely                                                       |
 
+### Phase 3 status (2026-10-15)
+
+3.1–3.12 done. Pulled forward from Phase 4 at the owner's request (D-057): synthesized audio + ambience (interim for 4.3–4.5), scene motion (plates in/out, people at the door, kitchen line, print-in; partial 4.4/4.7). Phase 4 still owns sourced/recorded audio, fonts, the printed-ticket look, art stills, post FX, and the performance pass.
+
 ## Phase 4 — Feel pass (only after gameplay sign-off)
 
 | ID  | Task                                                                                                                                                                                   | Definition of done                                                            |
