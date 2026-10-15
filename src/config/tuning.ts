@@ -84,8 +84,8 @@ export const tuning = {
 
   manager: {
     /** "Push 14": its live courses go late at most this soon, and drain faster. */
-    pushGraceMs: 12_000,
-    pushDrainMultiplier: 2,
+    pushGraceMs: 20_000,
+    pushDrainMultiplier: 1.5,
     /** "VIP on 8": bad plates sent to this table cost this many times more. */
     vipPenaltyMultiplier: 2,
   },
@@ -141,7 +141,7 @@ export const tuning = {
 
   defects: {
     /** Chance an item's plate comes out wrong, per night. */
-    ratePerNight: { 1: 0.08, 2: 0.1, 3: 0.12, 4: 0.14, 5: 0.16 },
+    ratePerNight: { 1: 0.08, 2: 0.1, 3: 0.12, 4: 0.14, 5: 0.14 },
     /** Relative weights of defect kinds. */
     kindWeights: { wrongMod: 5, missingComponent: 3, wrongDoneness: 3, wrongDish: 1 },
     /** On-the-fly remakes are more careful. */
@@ -184,10 +184,10 @@ export const tuning = {
     2: {
       firstTicketMs: 28_000,
       segments: [
-        { untilMs: 90_000, gapMs: [16_000, 22_000] },
-        { untilMs: 130_000, gapMs: [10_000, 14_000] },
+        { untilMs: 90_000, gapMs: [18_000, 24_000] },
+        { untilMs: 130_000, gapMs: [12_000, 16_000] },
         { untilMs: 150_000, gapMs: [0, 0] },
-        { untilMs: 210_000, gapMs: [9_000, 13_000] },
+        { untilMs: 210_000, gapMs: [11_000, 15_000] },
       ],
       twoCourseChance: 0.6,
       allergyChance: 0,
@@ -198,57 +198,57 @@ export const tuning = {
     3: {
       firstTicketMs: 10_000,
       segments: [
-        { untilMs: 60_000, gapMs: [14_000, 18_000] },
-        { untilMs: 130_000, gapMs: [8_000, 12_000] },
+        { untilMs: 60_000, gapMs: [17_000, 21_000] },
+        { untilMs: 130_000, gapMs: [12_000, 15_000] },
         { untilMs: 160_000, gapMs: [0, 0] },
-        { untilMs: 240_000, gapMs: [7_000, 10_000] },
+        { untilMs: 240_000, gapMs: [11_000, 14_000] },
       ],
-      twoCourseChance: 0.5,
+      twoCourseChance: 0.45,
       allergyChance: 0,
       interrupts: {
-        server_status: { firstMs: [40_000, 60_000], everyMs: [40_000, 60_000], max: 4 },
-        server_addon: { firstMs: [70_000, 110_000], everyMs: [50_000, 80_000], max: 2 },
-        kitchen_refire: { firstMs: [120_000, 150_000], everyMs: [60_000, 90_000], max: 2 },
+        server_status: { firstMs: [40_000, 60_000], everyMs: [50_000, 70_000], max: 3 },
+        server_addon: { firstMs: [70_000, 110_000], everyMs: [60_000, 90_000], max: 2 },
+        kitchen_refire: { firstMs: [120_000, 150_000], everyMs: [70_000, 90_000], max: 1 },
         kitchen_86: quiet,
       },
     },
     4: {
       firstTicketMs: 8_000,
       segments: [
-        { untilMs: 60_000, gapMs: [12_000, 16_000] },
-        { untilMs: 150_000, gapMs: [7_000, 10_000] },
+        { untilMs: 60_000, gapMs: [16_000, 20_000] },
+        { untilMs: 150_000, gapMs: [13_000, 16_000] },
         { untilMs: 175_000, gapMs: [0, 0] },
-        { untilMs: 270_000, gapMs: [6_000, 9_000] },
+        { untilMs: 270_000, gapMs: [12_000, 15_000] },
       ],
-      twoCourseChance: 0.5,
+      twoCourseChance: 0.4,
       allergyChance: 0.15,
       interrupts: {
-        server_status: { firstMs: [30_000, 50_000], everyMs: [35_000, 50_000], max: 5 },
-        server_addon: { firstMs: [60_000, 90_000], everyMs: [50_000, 70_000], max: 3 },
-        kitchen_refire: { firstMs: [90_000, 130_000], everyMs: [60_000, 80_000], max: 2 },
-        kitchen_drag: { firstMs: [100_000, 140_000], everyMs: [70_000, 90_000], max: 2 },
+        server_status: { firstMs: [30_000, 50_000], everyMs: [50_000, 70_000], max: 3 },
+        server_addon: { firstMs: [60_000, 90_000], everyMs: [70_000, 90_000], max: 2 },
+        kitchen_refire: { firstMs: [90_000, 130_000], everyMs: [70_000, 90_000], max: 1 },
+        kitchen_drag: { firstMs: [100_000, 140_000], everyMs: [80_000, 100_000], max: 1 },
         kitchen_86: { firstMs: [120_000, 180_000], everyMs: [60_000, 60_000], max: 1 },
-        bar_delay: { firstMs: [50_000, 80_000], everyMs: [60_000, 90_000], max: 2 },
+        bar_delay: { firstMs: [50_000, 80_000], everyMs: [70_000, 90_000], max: 1 },
       },
     },
     5: {
       firstTicketMs: 6_000,
       segments: [
-        { untilMs: 50_000, gapMs: [10_000, 13_000] },
-        { untilMs: 170_000, gapMs: [6_000, 9_000] },
+        { untilMs: 70_000, gapMs: [18_000, 22_000] },
+        { untilMs: 170_000, gapMs: [16_000, 19_000] },
         { untilMs: 195_000, gapMs: [0, 0] },
-        { untilMs: 300_000, gapMs: [5_000, 8_000] },
+        { untilMs: 300_000, gapMs: [13_000, 16_000] },
       ],
-      twoCourseChance: 0.55,
-      allergyChance: 0.2,
+      twoCourseChance: 0.3,
+      allergyChance: 0.15,
       interrupts: {
-        server_status: { firstMs: [25_000, 40_000], everyMs: [30_000, 45_000], max: 6 },
-        server_addon: { firstMs: [50_000, 80_000], everyMs: [45_000, 65_000], max: 3 },
-        kitchen_refire: { firstMs: [70_000, 100_000], everyMs: [50_000, 70_000], max: 3 },
-        kitchen_drag: { firstMs: [80_000, 120_000], everyMs: [60_000, 80_000], max: 2 },
-        kitchen_86: { firstMs: [100_000, 160_000], everyMs: [70_000, 90_000], max: 2 },
-        bar_delay: { firstMs: [40_000, 70_000], everyMs: [50_000, 70_000], max: 3 },
-        manager_push: { firstMs: [110_000, 150_000], everyMs: [60_000, 80_000], max: 2 },
+        server_status: { firstMs: [30_000, 45_000], everyMs: [70_000, 90_000], max: 2 },
+        server_addon: { firstMs: [60_000, 90_000], everyMs: [70_000, 90_000], max: 1 },
+        kitchen_refire: { firstMs: [90_000, 120_000], everyMs: [70_000, 90_000], max: 1 },
+        kitchen_drag: { firstMs: [80_000, 120_000], everyMs: [80_000, 100_000], max: 1 },
+        kitchen_86: { firstMs: [100_000, 160_000], everyMs: [70_000, 90_000], max: 1 },
+        bar_delay: { firstMs: [60_000, 90_000], everyMs: [60_000, 80_000], max: 1 },
+        manager_push: { firstMs: [110_000, 150_000], everyMs: [70_000, 90_000], max: 1 },
         manager_vip: quiet,
       },
     },

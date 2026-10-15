@@ -2,6 +2,7 @@ import type { ShiftDef } from '../schema';
 
 /**
  * Night 5 — "Full House". Everything at once, plus the manager. An allergy incident ends the shift.
+ * The birthday five-top lands in the quiet beat before the final wave (D-058): the night's climax.
  */
 export const night5 = {
   id: 5,
@@ -39,8 +40,9 @@ export const night5 = {
       },
     },
     { atMs: 16_000, type: 'interrupt', interrupt: 'manager_vip', target: { table: 8 } },
+    { atMs: 150_000, type: 'interrupt', interrupt: 'manager_push' },
     {
-      atMs: 60_000,
+      atMs: 175_000,
       type: 'ticket',
       ticket: {
         table: 51,
@@ -65,6 +67,5 @@ export const night5 = {
         ],
       },
     },
-    { atMs: 150_000, type: 'interrupt', interrupt: 'manager_push' },
   ],
 } as const satisfies ShiftDef;
