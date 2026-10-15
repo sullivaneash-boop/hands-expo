@@ -20,12 +20,14 @@ export function send(w: Work, cmd: Extract<PlayerCommand, { type: 'send' }>): vo
   const wasSent = course.items.filter((i) => i.state === 'sent').length;
   const errors: PlateErrorKind[] = [];
   const upTimes: number[] = [];
+  const plateIds: string[] = [];
   const errMult = ticket.flags.vip ? manager.vipPenaltyMultiplier : 1;
 
   for (const item of course.items) {
     if (item.state !== 'up' || !item.plateId) continue;
     const plate = w.s.plates[item.plateId] as Plate;
     upTimes.push(plate.upAtMs);
+    plateIds.push(plate.id);
     const err = plateError(w.ctx, item, plate.build, needsAllergyPick(ticket, item));
     if (err) {
       errors.push(err);
@@ -77,6 +79,7 @@ export function send(w: Work, cmd: Extract<PlayerCommand, { type: 'send' }>): vo
     ticketId: ticket.id,
     courseIdx: cmd.courseIdx,
     plates: upTimes.length,
+    plateIds,
     errors,
     complete,
     synced,

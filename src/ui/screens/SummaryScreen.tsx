@@ -1,4 +1,5 @@
 import { engine, randomSeed } from '../../engine/runtime';
+import type { NightId } from '../../config/tuning';
 import { useGameStore } from '../../store/useGameStore';
 import { REASON_LABEL, secs } from '../format';
 import type { ScoreReason } from '../../sim';
@@ -25,7 +26,7 @@ export function SummaryScreen() {
         <p className="text-xs tracking-widest text-tile">NIGHT {summary.nightId} · END OF SHIFT</p>
         <div className="mt-2 flex items-end justify-between">
           <h1 className={`text-3xl font-bold ${won ? 'text-amber' : 'text-rush'}`}>
-            {won ? 'SHIFT SURVIVED' : 'PULLED OFF EXPO'}
+            {won ? 'SHIFT SURVIVED' : summary.lostBy === 'allergy' ? 'ALLERGY INCIDENT' : 'PULLED OFF EXPO'}
           </h1>
           <div className="text-right">
             <div className={`text-6xl font-bold ${won ? 'text-phosphor' : 'text-rush'}`}>{summary.grade}</div>
@@ -36,7 +37,8 @@ export function SummaryScreen() {
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="space-y-1">
             <p className="mb-1 text-xs text-amber">TICKET TIME</p>
-            <Row label="Average" value={secs(summary.avgTicketMs)} />
+            <Row label="Avg course (ready → out)" value={secs(summary.avgCourseMs)} />
+            <Row label="Avg ticket" value={secs(summary.avgTicketMs)} />
             <Row label="Worst" value={secs(summary.worstTicketMs)} />
             <Row label="Tickets cleared" value={`${st.ticketsCleared} / ${st.ticketsPrinted}`} />
             <p className="mt-3 mb-1 text-xs text-amber">ACCURACY</p>
@@ -49,6 +51,13 @@ export function SummaryScreen() {
             <Row label="Plates died" value={st.platesDied} bad={st.platesDied > 0} />
             <Row label="Incomplete tables sent" value={st.incompleteSends} bad={st.incompleteSends > 0} />
             <Row label="Tables landed together" value={st.syncedCourses} />
+            <Row
+              label="Food beat the table / drinks"
+              value={`${st.earlyLandings} / ${st.barViolations}`}
+              bad={st.earlyLandings + st.barViolations > 0}
+            />
+            <Row label="Fired 86’d items" value={st.fired86} bad={st.fired86 > 0} />
+            <Row label="Allergy incidents" value={st.allergyIncidents} bad={st.allergyIncidents > 0} />
             <p className="mt-3 mb-1 text-xs text-amber">THE DOOR</p>
             <Row label="Answered right" value={st.interrupts.correct} />
             <Row label="Answered wrong" value={st.interrupts.wrong} bad={st.interrupts.wrong > 0} />
@@ -72,6 +81,14 @@ export function SummaryScreen() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
+          {won && summary.nightId < 5 && (
+            <button
+              onClick={() => engine.start((summary.nightId + 1) as NightId, randomSeed())}
+              className="border border-amber bg-amber px-4 py-2 font-bold text-ink"
+            >
+              NEXT NIGHT ▶
+            </button>
+          )}
           <button
             onClick={() => engine.restart()}
             className="border border-amber px-4 py-2 text-amber hover:bg-amber hover:text-ink"

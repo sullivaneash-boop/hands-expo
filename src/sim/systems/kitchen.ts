@@ -126,6 +126,7 @@ export function kitchenDrop(w: Work, ticketId?: string): { ticketId: string; men
     const item = ticket.courses[plate.courseIdx]?.items.find((i) => i.id === plate.itemId);
     if (item) item.plateId = null;
     remake(w, plate.ticketId, plate.courseIdx, plate.itemId);
+    w.emit({ type: 'plateDropped', plateId: plate.id, ticketId: plate.ticketId });
     return { ticketId: plate.ticketId, menuId: plate.build.menuId };
   }
   if (jobs.length > 0) {

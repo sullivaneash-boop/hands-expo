@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { tuning } from '../../config/tuning';
 import { bus } from '../../engine/bus';
+import { content } from '../../data';
+import { AudioManager } from '../../audio';
+import { useProgress } from '../../engine/save';
 import { useGameStore } from '../../store/useGameStore';
 import { REASON_LABEL, wallClock } from '../format';
 import type { ScoreReason } from '../../sim';
@@ -71,12 +74,44 @@ function ScoreTicker() {
   );
 }
 
+function NightName() {
+  const nightId = useGameStore((s) => s.snap?.nightId ?? 1);
+  const name = content.shifts.find((s) => s.id === nightId)?.name ?? '';
+  return (
+    <span className="text-xs tracking-widest text-tile">
+      NIGHT {nightId} · {name.toUpperCase()}
+    </span>
+  );
+}
+
+function MuteButton() {
+  const muted = useProgress((p) => p.muted);
+  return (
+    <button
+      onClick={() => {
+        useProgress.getState().setMuted(!muted);
+        AudioManager.setMuted(!muted);
+      }}
+      className="border border-steel px-2 text-xs text-tile hover:text-paper"
+      title="Sound on/off"
+    >
+      {muted ? 'SOUND OFF' : 'SOUND ON'}
+    </button>
+  );
+}
+
 export function Hud() {
   return (
     <header className="flex items-center justify-between gap-4 border-b border-steel px-4 py-2">
-      <Clock />
+      <div className="flex items-baseline gap-4">
+        <Clock />
+        <NightName />
+      </div>
       <ScoreTicker />
-      <HealthStrip />
+      <div className="flex items-center gap-3">
+        <MuteButton />
+        <HealthStrip />
+      </div>
     </header>
   );
 }

@@ -11,16 +11,16 @@ export function BuildCard() {
   if (!plate) {
     return (
       <div className="flex h-full items-center justify-center border border-dashed border-steel p-3 text-center text-xs text-tile">
-        No plate selected.
+        No plate in hand.
         <br />
-        Click a plate in the window to check it.
+        Click a plate on the pass to check it.
       </div>
     );
   }
 
   const close = () => useGameStore.getState().selectPlate(null);
   return (
-    <div className="flex h-full flex-col border border-amber bg-night p-3 text-xs">
+    <div className="anim-bubble-in flex min-h-44 flex-col border border-amber bg-night p-3 text-xs">
       <div className="mb-2 flex justify-between text-tile">
         <span>
           AS MADE · T{table} · {seatLabel(plate.seat)}
@@ -35,6 +35,7 @@ export function BuildCard() {
           </div>
         ))}
         {plate.build.mods.length === 0 && <div className="pl-4 font-normal text-tile">(nothing extra)</div>}
+        {plate.build.allergyPick && <div className="mt-2 text-rush">⚑ ALLERGY PICK IN</div>}
       </div>
       <div className="mt-3 flex gap-2">
         <button

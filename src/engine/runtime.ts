@@ -8,6 +8,7 @@ import { useGameStore } from '../store/useGameStore';
 import { bus } from './bus';
 import { startLoop } from './loop';
 import { Session } from './session';
+import { useProgress } from './save';
 
 const ctx = { tuning, content };
 
@@ -33,6 +34,7 @@ function publish(events: SimEvent[]): void {
   useGameStore.getState().setSnapshot(session.state);
   for (const e of events) bus.emit(e);
   if (session.state.phase === 'ended') {
+    if (session.state.summary) useProgress.getState().record(session.state.summary);
     stopLoop?.();
     stopLoop = null;
     useGameStore.getState().setScreen('summary');

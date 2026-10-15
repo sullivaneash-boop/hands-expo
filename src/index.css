@@ -60,3 +60,270 @@ body {
     animation: none;
   }
 }
+
+/* ───────────────────── Scene motion (D-057). transform/opacity/clip-path only. ───────────────────── */
+
+/* Ticket feeds out of the printer line by line (~ printer sound length). */
+@keyframes print-in {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+.anim-print-in {
+  animation: print-in 1.1s steps(9) both;
+}
+
+/* Plates slide down off the line onto the pass with a small settle. */
+@keyframes plate-in {
+  0% {
+    transform: translateY(-48px) scale(0.94);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(3px) scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+.anim-plate-in {
+  animation: plate-in 380ms ease-out both;
+}
+
+/* Exits (ghost plates): out to the dining room, into the bin, wilting, dropped. */
+@keyframes plate-sent {
+  to {
+    transform: translate(220px, 24px) rotate(6deg);
+    opacity: 0;
+  }
+}
+@keyframes plate-bin {
+  20% {
+    transform: translateY(-6px) rotate(4deg);
+  }
+  to {
+    transform: translate(-30px, 90px) rotate(-38deg);
+    opacity: 0;
+  }
+}
+@keyframes plate-wilt {
+  30% {
+    transform: scaleY(0.9) translateY(6px);
+    opacity: 0.8;
+  }
+  to {
+    transform: scaleY(0.7) translateY(40px);
+    opacity: 0;
+  }
+}
+@keyframes plate-drop {
+  0%,
+  30% {
+    transform: translateX(0);
+  }
+  10% {
+    transform: translateX(-6px) rotate(-4deg);
+  }
+  20% {
+    transform: translateX(6px) rotate(4deg);
+  }
+  to {
+    transform: translateY(140px) rotate(70deg);
+    opacity: 0;
+  }
+}
+.anim-plate-sent {
+  animation: plate-sent 520ms ease-in both;
+}
+.anim-plate-bin {
+  animation: plate-bin 600ms ease-in both;
+}
+.anim-plate-wilt {
+  animation: plate-wilt 900ms ease-in both;
+  filter: grayscale(1);
+}
+.anim-plate-drop {
+  animation: plate-drop 800ms ease-in both;
+}
+
+/* People walking up to the door and leaving. */
+@keyframes walk-in {
+  from {
+    transform: translateX(110vw);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes walk-out {
+  to {
+    transform: translateX(110vw);
+    opacity: 0.4;
+  }
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes step-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -5px;
+  }
+}
+.anim-walk-in {
+  animation:
+    walk-in 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both,
+    step-bob 175ms steps(2) 4;
+}
+.anim-walk-out {
+  animation:
+    walk-out 650ms ease-in both,
+    step-bob 175ms steps(2) 4;
+}
+.anim-bob {
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+/* Swing door + porthole. */
+@keyframes door-swing {
+  0%,
+  100% {
+    transform: perspective(500px) rotateY(0);
+  }
+  35% {
+    transform: perspective(500px) rotateY(-32deg);
+  }
+  70% {
+    transform: perspective(500px) rotateY(10deg);
+  }
+}
+.anim-door-swing {
+  animation: door-swing 700ms ease-out;
+  transform-origin: left center;
+}
+
+/* Line flames / heat. */
+@keyframes flicker {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scaleY(1.25) scaleX(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.9) scaleX(1.05);
+    opacity: 0.75;
+  }
+}
+.anim-flicker {
+  animation: flicker 280ms ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+.anim-flicker-slow {
+  animation: flicker 700ms ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+
+/* Speech bubbles / call-outs. */
+@keyframes bubble-in {
+  from {
+    transform: translateY(6px) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.anim-bubble-in {
+  animation: bubble-in 220ms ease-out both;
+}
+
+/* Hit feedback. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translate(-5px, 2px);
+  }
+  40% {
+    transform: translate(5px, -2px);
+  }
+  60% {
+    transform: translate(-3px, 1px);
+  }
+  80% {
+    transform: translate(3px, 0);
+  }
+}
+.anim-shake {
+  animation: shake 320ms linear;
+}
+@keyframes flash-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.anim-flash {
+  animation: flash-out 700ms ease-out both;
+}
+
+/* Stamp slam for VIP / PUSH / 86. */
+@keyframes stamp {
+  from {
+    transform: scale(1.8) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(-6deg);
+    opacity: 1;
+  }
+}
+.anim-stamp {
+  animation: stamp 260ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-print-in,
+  .anim-plate-in,
+  .anim-walk-in,
+  .anim-bob,
+  .anim-door-swing,
+  .anim-flicker,
+  .anim-flicker-slow,
+  .anim-bubble-in,
+  .anim-shake,
+  .anim-stamp {
+    animation: none;
+  }
+  .anim-plate-sent,
+  .anim-plate-bin,
+  .anim-plate-wilt,
+  .anim-plate-drop,
+  .anim-walk-out,
+  .anim-flash {
+    animation-duration: 1ms;
+  }
+}

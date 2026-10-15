@@ -12,12 +12,14 @@ export type SimEvent =
   | { type: 'itemFired'; ticketId: string; itemId: string; station: StationId; onTheFly: boolean }
   | { type: 'plateUp'; plateId: string; ticketId: string; station: StationId }
   | { type: 'plateDied'; plateId: string; ticketId: string }
+  | { type: 'plateDropped'; plateId: string; ticketId: string }
   | { type: 'plateRefired'; plateId: string; ticketId: string; correct: boolean }
   | {
       type: 'courseSent';
       ticketId: string;
       courseIdx: number;
       plates: number;
+      plateIds: string[];
       errors: PlateErrorKind[];
       complete: boolean;
       synced: boolean;

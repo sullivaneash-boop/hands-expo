@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { bus } from '../../engine/bus';
 import { useGameStore, type View } from '../../store/useGameStore';
 import { FloorView } from '../floor/FloorView';
 import { Hud } from '../hud/Hud';
-import { serverName } from '../format';
 import { PassView } from './PassView';
 
 const ORDER: View[] = ['pass', 'floor'];
@@ -13,25 +13,39 @@ function look(dir: -1 | 1) {
   if (next) s.setView(next);
 }
 
-/** "Someone's at the door" cue shown on the PASS view's right edge. */
-function DoorCue() {
-  const firstId = useGameStore((s) => s.snap?.interruptOrder[0]);
-  const count = useGameStore((s) => s.snap?.interruptOrder.length ?? 0);
-  const server = useGameStore((s) => (firstId ? s.snap?.interrupts[firstId]?.speaker : undefined));
-  if (!server) return null;
-  return (
-    <button
-      onClick={() => look(1)}
-      className="absolute top-1/2 right-0 -translate-y-1/2 animate-pulse border-2 border-r-0 border-amber bg-night px-3 py-4 text-xs text-amber"
-    >
-      {serverName(server)}
-      {count > 1 ? ` +${count - 1}` : ''} AT THE DOOR ▶
-    </button>
-  );
+const SHAKE: Keyframe[] = [
+  { transform: 'none' },
+  { transform: 'translate(-5px, 2px)' },
+  { transform: 'translate(5px, -2px)' },
+  { transform: 'translate(-3px, 1px)' },
+  { transform: 'translate(3px, 0)' },
+  { transform: 'none' },
+];
+
+/**
+ * Hit feedback: a short shake on discrete mistakes (not the per-second late drain), and a red flash on
+ * an allergy incident. Uses element.animate so nothing remounts. Skipped under prefers-reduced-motion.
+ */
+function useHitFx(target: RefObject<HTMLDivElement | null>) {
+  const [flash, setFlash] = useState(0);
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const offs = [
+      bus.on('healthChanged', (e) => {
+        if (!reduce && e.reason !== 'late' && e.delta <= -8)
+          target.current?.animate(SHAKE, { duration: 320 });
+      }),
+      bus.on('allergyIncident', () => setFlash((n) => n + 1)),
+    ];
+    return () => offs.forEach((off) => off());
+  }, [target]);
+  return flash;
 }
 
 export function GameScreen() {
   const view = useGameStore((s) => s.view);
+  const root = useRef<HTMLDivElement>(null);
+  const flash = useHitFx(root);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,7 +59,7 @@ export function GameScreen() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col">
+    <div ref={root} className="flex h-full flex-col">
       <Hud />
       <nav className="flex justify-between border-b border-steel px-4 py-1 text-xs">
         <button
@@ -69,7 +83,12 @@ export function GameScreen() {
         <div key={view} className="view-blip h-full">
           {view === 'pass' ? <PassView /> : <FloorView />}
         </div>
-        {view === 'pass' && <DoorCue />}
+        {flash > 0 && (
+          <div
+            key={flash}
+            className="anim-flash pointer-events-none absolute inset-0 shadow-[inset_0_0_120px_40px_rgba(200,66,59,0.75)]"
+          />
+        )}
       </main>
     </div>
   );

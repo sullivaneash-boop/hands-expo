@@ -80,6 +80,7 @@ function Panel() {
   const reveal = useGameStore((s) => s.revealDefects);
   const [seedInput, setSeedInput] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [interruptId, setInterruptId] = useState('server_status');
   const store = useGameStore.getState();
   const dbg = (action: Parameters<typeof engine.dispatch>[0] & { type: 'debug' }) => engine.dispatch(action);
 
@@ -109,12 +110,22 @@ function Panel() {
         <Btn onClick={() => engine.fastForward(10_000)}>+10s</Btn>
         <Btn onClick={() => engine.fastForward(30_000)}>+30s</Btn>
         <Btn onClick={() => dbg({ type: 'debug', action: { kind: 'spawnTicket' } })}>spawn ticket</Btn>
-        <Btn
-          onClick={() =>
-            dbg({ type: 'debug', action: { kind: 'triggerInterrupt', interrupt: 'server_status' } })
-          }
+        <select
+          value={interruptId}
+          onChange={(e) => setInterruptId(e.target.value)}
+          className="border border-steel bg-night px-1"
+          aria-label="Interrupt to trigger"
         >
-          server asks
+          {content.interrupts.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.id}
+            </option>
+          ))}
+        </select>
+        <Btn
+          onClick={() => dbg({ type: 'debug', action: { kind: 'triggerInterrupt', interrupt: interruptId } })}
+        >
+          trigger
         </Btn>
       </div>
       {expanded && (
