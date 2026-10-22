@@ -111,6 +111,8 @@ Each phase is about 1–2 weeks, stops for owner approval, and keeps `main` play
 | 6.6 | **Learn-by-doing first minute** (Night 1 opener rewritten per report: one ticket, FIRE only, a correct plate, then a wrong side, then a 2-seat stagger hint); sticky note retired                       | First FIRE < 15 s, first HANDS! < 45 s in playtests                                    |
 | 6.7 | **Local telemetry** (no server): mis-taps, check time, decisions/min, quits, retries; export JSON from the debug panel                                                                                  | Playtest sessions produce a metrics file                                               |
 
+**Status (2026-10-22):** 6.1–6.7 built (D-072 – D-076). Verified in the browser at 360×800, 390×844 and desktop: coach → FIRE → CHECK → GOOD → HANDS!, ticket details with per-item fire and cook times, REFIRE with the grease-pencil circle (scores a SAVE), interrupt tray, critical banner, summary; no horizontal scroll. Playtest targets (median check < 3 s, first FIRE < 15 s, first HANDS! < 45 s) need human sessions — telemetry export is ready for them. Keyboard play on desktop is not built yet (tap/click only).
+
 ## Phase 7 — Feel pass
 
 P0/P1 juice from the report: tap compression, FIRE stamp, plate landing weight, the **signature HANDS! send** (plates stack and fly out, ticket tears, score cascades), grease-pencil circle, satisfying REFIRE bin, combo audio ladder, clean-board beat, local pass shake, pooled canvas particles (steam, crumbs, confetti), best-effort web haptics, reduced-motion equivalents, performance budget on a mid Android phone (old 4.9).
