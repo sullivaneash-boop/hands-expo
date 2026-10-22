@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initAudio } from './audio';
+import { initTelemetry } from './ui/telemetry';
 import { engine } from './engine/runtime';
 import { useGameStore } from './store/useGameStore';
 import { debugEnabled } from './ui/debug/DebugOverlay';
@@ -9,6 +10,7 @@ import './index.css';
 
 // Audio subscribes to sim events outside React; Howler unlocks on the first click ("Clock In").
 initAudio();
+initTelemetry();
 
 // Debug builds expose the engine for console poking and automated playtests.
 if (debugEnabled) Object.assign(window, { __hands: { engine, store: useGameStore } });

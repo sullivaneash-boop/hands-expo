@@ -75,7 +75,7 @@ body {
   }
 }
 .anim-print-in {
-  animation: print-in 1.1s steps(9) both;
+  animation: print-in 1.1s steps(9) backwards; /* not `both`: a kept clip-path would hide the selection outline */
 }
 
 /* Plates slide down off the line onto the pass with a small settle. */
@@ -325,5 +325,15 @@ body {
   .anim-walk-out,
   .anim-flash {
     animation-duration: 1ms;
+  }
+}
+
+/* Grease-pencil circle on the CHECK card (draws in). */
+@keyframes draw-circle {
+  from {
+    stroke-dashoffset: 260;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }

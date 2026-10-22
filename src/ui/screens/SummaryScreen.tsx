@@ -62,7 +62,7 @@ export function SummaryScreen() {
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="space-y-1">
             <p className="mb-1 text-xs text-amber">SERVICE</p>
-            <Row label="Perfect tables (landed together)" value={st.perfectSyncs} tone="good" />
+            <Row label="Perfect tables (in sync)" value={st.perfectSyncs} tone="good" />
             <Row label="Best combo" value={`×${st.comboMax.toFixed(2)}`} tone="good" />
             <Row label="Clean boards" value={st.cleanBoards} tone="good" />
             <Row label="Saves (bad plates caught)" value={st.errorsCaught} tone="good" />
@@ -88,7 +88,7 @@ export function SummaryScreen() {
               tone={st.incompleteSends ? 'bad' : undefined}
             />
             <Row
-              label="Food beat the table / drinks"
+              label="Sent early / beat the bar"
               value={`${st.earlyLandings} / ${st.barViolations}`}
               tone={st.earlyLandings + st.barViolations ? 'bad' : undefined}
             />

@@ -5,6 +5,8 @@ import { bus } from '../../engine/bus';
 import { engine, randomSeed } from '../../engine/runtime';
 import type { SimEvent } from '../../sim';
 import { useGameStore } from '../../store/useGameStore';
+import { useProgress } from '../../engine/save';
+import { clearTelemetry, exportTelemetry } from '../telemetry';
 import { mmss } from '../format';
 
 /** Dev builds always; any build with ?debug=1 (D-025). */
@@ -173,6 +175,23 @@ function Panel() {
             </Btn>
           </div>
           <EventLog />
+          <div className="flex flex-wrap gap-1">
+            <Btn
+              onClick={() => {
+                const blob = new Blob([exportTelemetry()], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hands-telemetry-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              export telemetry
+            </Btn>
+            <Btn onClick={() => clearTelemetry()}>clear telemetry</Btn>
+            <Btn onClick={() => useProgress.setState({ tutorialDone: false })}>replay tutorial</Btn>
+          </div>
           <StateView />
         </>
       )}

@@ -50,6 +50,8 @@ export const engine = {
     const store = useGameStore.getState();
     store.setSnapshot(session.state);
     store.selectTicket(null);
+    store.openSheet(null);
+    useGameStore.setState({ approved: {} });
     store.setView('pass');
     store.setPaused(false);
     store.setScreen('playing');

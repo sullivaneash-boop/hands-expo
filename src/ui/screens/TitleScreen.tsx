@@ -90,15 +90,16 @@ export function TitleScreen() {
         {/* The manager's sticky note: the game's only instructions (diegetic, STYLE §5). Not a button. */}
         <aside className="mb-6 w-full max-w-72 rotate-1 bg-[var(--ticket-paper)] p-4 text-xs leading-relaxed text-ink shadow-lg md:absolute md:right-6 md:bottom-6 md:mb-0">
           <p className="mb-2 font-bold">EXPO — READ THIS</p>
-          <p>Tickets print onto the rail. FIRE sends them to the line (or click one item to fire just it).</p>
+          <p>Tickets print onto the rail. Tap one, then FIRE to send it to the line.</p>
           <p className="mt-2">
-            Plates land on the pass. CHECK each one against its ticket. Wrong? REFIRE. Right? HANDS!
+            Plates land on the pass. Tap a plate to CHECK it against the ticket. Wrong? Tap what’s off, then
+            REFIRE. Right? HANDS!
           </p>
           <p className="mt-2">
             HOLD courses wait until the server asks to fire. ALLERGY? Flag it to the line before you fire.
           </p>
-          <p className="mt-2">Watch the door porthole. Press D to deal with whoever’s there.</p>
-          <p className="mt-2 font-bold">Don’t let Service hit zero. — M.</p>
+          <p className="mt-2">Servers will pop up with questions. Answer them, quick.</p>
+          <p className="mt-2 font-bold">Keep the Heat down. Clean plates build the combo. — M.</p>
         </aside>
       </div>
     </main>

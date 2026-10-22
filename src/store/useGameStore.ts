@@ -3,6 +3,8 @@ import type { SimState } from '../sim';
 
 export type Screen = 'title' | 'playing' | 'summary';
 export type View = 'pass' | 'floor';
+/** Bottom sheet over the board (D-073): ticket details or the plate CHECK card. */
+export type Sheet = { kind: 'ticket'; id: string } | { kind: 'plate'; id: string } | null;
 
 /**
  * Read-only mirror of the latest sim snapshot + UI-only state (D-001).
@@ -22,6 +24,9 @@ export interface GameStore {
   /** Debug: outline wrong plates (omniscient). */
   revealDefects: boolean;
   muted: boolean;
+  sheet: Sheet;
+  /** Plates the player marked GOOD on the CHECK card (UI-only; the sim judges on send). */
+  approved: Readonly<Record<string, true>>;
 
   setSnapshot: (snap: SimState) => void;
   setFps: (fps: number) => void;
@@ -34,6 +39,8 @@ export interface GameStore {
   setDebugOpen: (open: boolean) => void;
   setRevealDefects: (on: boolean) => void;
   setMuted: (muted: boolean) => void;
+  openSheet: (sheet: Sheet) => void;
+  approve: (plateId: string) => void;
 }
 
 export const useGameStore = create<GameStore>()((set) => ({
@@ -48,6 +55,8 @@ export const useGameStore = create<GameStore>()((set) => ({
   debugOpen: false,
   revealDefects: false,
   muted: false,
+  sheet: null,
+  approved: {},
 
   setSnapshot: (snap) => set({ snap }),
   setFps: (fps) => set({ fps }),
@@ -61,4 +70,6 @@ export const useGameStore = create<GameStore>()((set) => ({
   setDebugOpen: (debugOpen) => set({ debugOpen }),
   setRevealDefects: (revealDefects) => set({ revealDefects }),
   setMuted: (muted) => set({ muted }),
+  openSheet: (sheet) => set({ sheet }),
+  approve: (plateId) => set((s) => ({ approved: { ...s.approved, [plateId]: true } })),
 }));
