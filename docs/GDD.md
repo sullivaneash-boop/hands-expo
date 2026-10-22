@@ -216,3 +216,15 @@ Server names: MAYA, LUIS, JEN (fictional, from report 02's fixtures). No real PO
 ### Never (out of concept)
 
 Cooking actions or recipes; inventory counts; money, comps, voids, or payments; reservations; pathfinding or animated characters walking; kitchen morale meters; jumpscares and horror; anything from FNAF; real POS or printer brands.
+
+## 11. Next-level direction (owner-approved 2026-10-22)
+
+The scope contract now includes the approved Phases 5–10 in `docs/ROADMAP.md` (source: `docs/research/05-next-level-report.md`; decisions D-063 – D-065). In short:
+
+- **Pitch:** _You're not the cook. You're the person trying to make the whole restaurant land at once._
+- **Rules v2 (Phase 5):** stations have 2 cook slots each and extra fires queue; the pass holds ~6 plates; **Service Heat** (0 composed → 100 meltdown, recoverable, 8 s critical window) replaces Service Health; scoring rewards synchronized, fresh, clean courses with a 1×–3× clean-service combo and a SAVE bonus for caught defects; stars per night.
+- **Mobile (Phase 6):** portrait layout, big touch targets, contextual action dock, visual ordered-vs-made plate check, interrupts in a tray over the live board (the door view is parked for a future expert mode), learn-by-doing first minute.
+- **Then:** feel pass (7), progression with contracts, Daily Service and shareable receipts (8), visual identity (9), PWA/Capacitor ship (10).
+- **Still out of scope:** paid boosters, energy systems, ads during service, inventory counting, permanent stat upgrades. Career across restaurants, runners, low-stock warnings, staff sidegrades and an expert "call the board" ruleset are deferred until the first restaurant is proven fun.
+
+Where this section conflicts with §3–§8 above, this section wins; those sections get rewritten as each phase lands.

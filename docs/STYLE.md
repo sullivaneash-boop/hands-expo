@@ -1,5 +1,7 @@
 # HANDS! — Style Guide (visual + audio)
 
+> **2026-10-22:** portrait-first (D-065) supersedes the 16:9 landscape stage and "rotate device" card in §5; visual direction is being reworked in Phase 9 per `docs/research/05-next-level-report.md`.
+
 > Condensed from `docs/research/03-aesthetic.md`. Status: Phase 0, 2026-10-06.
 > **Grey-box rule:** through Phase 3, the game uses placeholder rectangles, system monospace, and generated beeps. Apply this guide in Phase 4 only. The palette tokens are defined from Phase 1 so the grey-box already uses the right _colour roles_.
 

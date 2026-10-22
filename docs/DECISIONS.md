@@ -202,3 +202,14 @@ _Reason:_ ROADMAP 3.12 plus fast playtesting of later nights on previews.
 
 **D-062 — 2026-10-15 — Owner-supplied recordings replace the synthesized printer, tear and plate sounds, and dining-room chatter replaces the kitchen hum. Files ship unedited under clean names in `src/assets/audio/recorded/`.** The 20 s printer recording is played as ticket-length regions from its continuous run (short/medium/long by ticket line count) with a 140 ms fade-out, then the paper tear. The two plate clanks alternate on plates landing (quieter on HANDS!). The 130 s chatter streams (HTML5) as the bed: muffled at the pass, louder at the door. Removed per the owner: the bell, the allergy alarm, the hood/kitchen hum, and any sound on rejected clicks. Synth keeps only door, clang, tick, thunk (fired an 86'd item), scrape and wilt.
 _Reason:_ Owner direction after Phase 3 playtest. Streaming the bed avoids decoding ~46 MB of PCM; cutting regions in code keeps the original files intact. Licence/origin of the recordings is logged as "to be confirmed" in ASSETS.md.
+
+### Next-level direction (owner-approved 2026-10-22)
+
+**D-063 — 2026-10-22 — Adopt the direction in `docs/research/05-next-level-report.md`: keep the deterministic sim and data model; make decisions visible, tactile and rewarding (station capacity, pass spots, Service Heat, clean-service combo, visual CHECK, portrait UI), then progression and art. Build order is rules-first: Phase 5 changes the rules headlessly and proves them with the bot; Phase 6 builds the mobile UI once against the final rules.**
+_Reason:_ Owner approval. Rules-first avoids building the portrait UI twice and lets the bot verify that strategy beats "fire everything ASAP" before UI investment.
+
+**D-064 — 2026-10-22 — Interrupts move to a tray over the live board in the core game. The separate door view (D-014) is parked, not deleted, for a future expert mode or difficulty level.**
+_Reason:_ Owner decision. The research found the hidden-rail memory quiz taxes working memory rather than creating service decisions; the owner likes the turn-around as an expert challenge.
+
+**D-065 — 2026-10-22 — Portrait-first mobile design (360–430 px wide). Supersedes STYLE.md §5's fixed 16:9 landscape stage and "rotate device" card.**
+_Reason:_ Owner decision; one-thumb play like the touchstone mobile games, and the research's layout assumes it. Desktop remains supported as a centered portrait stage.

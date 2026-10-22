@@ -75,7 +75,7 @@
 
 ---
 
-# Proposal: Phases 5–10 — from working prototype to mobile game _(pending owner approval, 2026-10-22)_
+# Proposal: Phases 5–10 — from working prototype to mobile game _(approved 2026-10-22: rules-first order, interrupt tray with the door view parked for expert mode, portrait — D-063 – D-065)_
 
 Source: `docs/research/05-next-level-report.md` (research brief: `04-next-level-prompt.md`). The report's verdict: keep the deterministic sim and data model; the next leap is making the existing decisions **visible, tactile and rewarding**: real station capacity, a visual plate check, recoverable Service Heat instead of a health drain, a clean-service combo, a portrait touch layout, then progression and art.
 
