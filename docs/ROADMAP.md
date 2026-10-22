@@ -59,7 +59,7 @@
 
 3.1–3.12 done. Pulled forward from Phase 4 at the owner's request (D-057): synthesized audio + ambience (interim for 4.3–4.5), scene motion (plates in/out, people at the door, kitchen line, print-in; partial 4.4/4.7). Phase 4 still owns sourced/recorded audio, fonts, the printed-ticket look, art stills, post FX, and the performance pass.
 
-## Phase 4 — Feel pass (only after gameplay sign-off)
+## Phase 4 — Feel pass _(superseded by the Phase 5–10 proposal below: 4.1–4.2 → Phase 9, 4.4–4.7 → Phase 7, 4.8 → Phase 9, 4.9 → Phase 7/10; 4.3 done via owner recordings, D-062)_
 
 | ID  | Task                                                                                                                                                                                   | Definition of done                                                            |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -72,3 +72,57 @@
 | 4.7 | **View framing + post FX.** 960×540 letterboxed stage, view whip/blip, single WebGL post pass (grain, vignette; scanlines and chroma on monitors only), flicker, reduce-effects toggle | Toggle disables everything; `prefers-reduced-motion` respected                |
 | 4.8 | **Art stills** _(blocked on the owner's art decision)_. Pre-rendered views + overlays per STYLE §5                                                                                     | AVIF/WebP within budget                                                       |
 | 4.9 | **Performance.** Debug "stress" action: 25 live tickets + 12 plates; profile                                                                                                           | Stable 60 fps on a mid laptop, ≥ 30 on a mid phone; initial payload ≤ 2.25 MB |
+
+---
+
+# Proposal: Phases 5–10 — from working prototype to mobile game _(pending owner approval, 2026-10-22)_
+
+Source: `docs/research/05-next-level-report.md` (research brief: `04-next-level-prompt.md`). The report's verdict: keep the deterministic sim and data model; the next leap is making the existing decisions **visible, tactile and rewarding**: real station capacity, a visual plate check, recoverable Service Heat instead of a health drain, a clean-service combo, a portrait touch layout, then progression and art.
+
+**One change from the report's build order:** the report starts with the mobile shell. This plan does the **rules first, headlessly** (Phase 5), so the bot can prove that strategy beats "fire everything now" _before_ we build a new UI around those rules. The portrait UI then gets built once, against final rules, instead of twice.
+
+Each phase is about 1–2 weeks, stops for owner approval, and keeps `main` playable.
+
+## Phase 5 — Rules v2 (sim + bot; current UI kept playable)
+
+| ID  | Task                                                                                                                                                                                                                                                    | Definition of done                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5.1 | **Station capacity.** 2 cook slots per station (tuning); extra FIREs queue FIFO, visible as "QUEUED"; a dragging station loses a slot instead of only slowing                                                                                           | Tests: a 5-top with 3 grill items queues the third; queue order deterministic; replay hash stable                                                 |
+| 5.2 | **Pass capacity.** ~6 plate spots; when full, finished food waits behind the window and keeps aging ("backed up")                                                                                                                                       | Tests: 7th plate can't land; it lands when a spot frees; ageing continues                                                                         |
+| 5.3 | **Service Heat** replaces Service Health: 0 = composed, 100 = meltdown; capped lateness pressure (root-sum-square of late severities), passive + success recovery, 8 s critical window before failure; allergy rule unchanged                           | Formulas in `tuning.heat`; tests for cap, recovery, critical enter/exit/fail                                                                      |
+| 5.4 | **Scoring v2.** Course score = plates + sync quality + freshness × clean-streak combo (1×–3×); SAVE bonus for caught defects (combo kept); clean-board bonus; stars (1–3) per night from score thresholds                                               | Tests per rule; summary shows score breakdown; grade derived from stars/score                                                                     |
+| 5.5 | **Bot v2.** Station- and pass-aware staggering; strategy variants (ASAP, never-stagger, ignore-load, ignore-sync, never-check); new metrics: death-spiral rate, decisions/min, overfire rate, sync conversion, pass-panic time, combo uptime, check tax | `npm run balance -- --ablate` prints the strategy table                                                                                           |
+| 5.6 | **Retune Nights 1–5**                                                                                                                                                                                                                                   | Average-bot fail ≈ 0–5 / 5–15 / 15–25 / 25–40 / 35–50%; expert <5%; **expert scores ≥20–30% more than expert-ASAP**; death spirals <15% of losses |
+| 5.7 | Minimal UI hooks on the current screen: Heat meter, combo, queue badges, pass spots, score pops                                                                                                                                                         | Every night is playable end to end with the new rules                                                                                             |
+
+## Phase 6 — Mobile shell + visual CHECK
+
+| ID  | Task                                                                                                                                                                                                    | Definition of done                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 6.1 | **Portrait layout** (360–430 px wide): header (clock · combo · Heat), snap rail of 2–3 compact tickets, station strip (slots + queues + all-day count), 6-spot pass, interrupt tray, bottom action dock | Nights 1–5 playable at 360×800, no horizontal page scroll, safe areas respected        |
+| 6.2 | **Ticket card + detail sheet;** contextual dock actions (FIRE COURSE / FIRE ITEM / HANDS! / FLAG ALLERGY / SUB 86)                                                                                      | Every gameplay target ≥ 44 px; primary actions 56–64 px                                |
+| 6.3 | **PlateSchema + icon set:** silhouettes for the 8 dishes, 5-notch doneness gauge, side icons, removal (crossed) and add (+) tokens, allergy pick; text fallback under unfamiliar icons                  | Every current modifier has icon + text; nothing relies on colour alone                 |
+| 6.4 | **Visual CHECK:** ordered vs. made in aligned slots; tap the mismatch (grease-pencil circle) or GOOD; REFIRE / HANDS!                                                                                   | Internal median check time < 3 s; allergy stays procedural (D-009)                     |
+| 6.5 | **Interrupts as a tray** over the live board _(owner decision, see questions)_                                                                                                                          | Status questions answerable with the rail visible; post-interrupt mistake rate tracked |
+| 6.6 | **Learn-by-doing first minute** (Night 1 opener rewritten per report: one ticket, FIRE only, a correct plate, then a wrong side, then a 2-seat stagger hint); sticky note retired                       | First FIRE < 15 s, first HANDS! < 45 s in playtests                                    |
+| 6.7 | **Local telemetry** (no server): mis-taps, check time, decisions/min, quits, retries; export JSON from the debug panel                                                                                  | Playtest sessions produce a metrics file                                               |
+
+## Phase 7 — Feel pass
+
+P0/P1 juice from the report: tap compression, FIRE stamp, plate landing weight, the **signature HANDS! send** (plates stack and fly out, ticket tears, score cascades), grease-pencil circle, satisfying REFIRE bin, combo audio ladder, clean-board beat, local pass shake, pooled canvas particles (steam, crumbs, confetti), best-effort web haptics, reduced-motion equivalents, performance budget on a mid Android phone (old 4.9).
+
+## Phase 8 — Progression
+
+Per-night contracts (No Dead Plates, 3 Perfect Tables, Never Overfire Grill), stars-gated unlocks, **Daily Service** (seed from UTC date + ruleset version, fully offline), Saturday score-attack, shareable **shift receipt** (Web Share API), ticket-stub collection, local best scores. No currency to buy power, no energy, no ads in service.
+
+## Phase 9 — Visual identity
+
+"Night-shift diorama, arcade legibility": one atmospheric fixed-camera pass background with crisp interactive dishes, tickets, stations and characters on top; dishes readable by silhouette at 80 px; printed-ticket look and fonts (old 4.1–4.2); character portraits and barks (old 4.6). _Needs the owner's art decision._
+
+## Phase 10 — Ship
+
+PWA (service worker, offline), Capacitor iOS/Android (native haptics, share, safe areas), physical-device audio/perf QA, store metadata; later, a serverless replay-verified Daily leaderboard. Monetization (report: free demo + one-time unlock + optional cosmetics) decided by the owner before this phase.
+
+### Report items deliberately deferred
+
+Career across restaurants/cuisines (after the first restaurant is proven fun) · runner tokens · LOW-stock warnings · staff/equipment sidegrades · Expert "call the board" ruleset · leaderboards beyond Daily.
