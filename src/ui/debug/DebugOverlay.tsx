@@ -33,7 +33,7 @@ function EventLog() {
   useEffect(
     () =>
       bus.onAny((e) => {
-        if (e.type === 'secondElapsed' || (e.type === 'healthChanged' && e.reason === 'late')) return;
+        if (e.type === 'secondElapsed' || (e.type === 'heatChanged' && e.reason === 'late')) return;
         const at = useGameStore.getState().snap?.nowMs ?? 0;
         setLog((prev) => [...prev.slice(-29), { at, e }]);
       }),
@@ -131,9 +131,9 @@ function Panel() {
       {expanded && (
         <>
           <div className="flex flex-wrap items-center gap-1">
-            <span className="text-tile">health</span>
-            {[100, 50, 10, 0].map((h) => (
-              <Btn key={h} onClick={() => dbg({ type: 'debug', action: { kind: 'setHealth', health: h } })}>
+            <span className="text-tile">heat</span>
+            {[0, 50, 90, 100].map((h) => (
+              <Btn key={h} onClick={() => dbg({ type: 'debug', action: { kind: 'setHeat', heat: h } })}>
                 {h}
               </Btn>
             ))}

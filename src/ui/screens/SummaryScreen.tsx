@@ -1,14 +1,30 @@
-import { engine, randomSeed } from '../../engine/runtime';
 import type { NightId } from '../../config/tuning';
+import { engine, randomSeed } from '../../engine/runtime';
 import { useGameStore } from '../../store/useGameStore';
-import { REASON_LABEL, secs } from '../format';
+import { pts, REASON_LABEL, secs } from '../format';
 import type { ScoreReason } from '../../sim';
 
-function Row({ label, value, bad }: { label: string; value: string | number; bad?: boolean }) {
+function Row({ label, value, tone }: { label: string; value: string | number; tone?: 'bad' | 'good' }) {
   return (
     <div className="flex justify-between gap-6">
       <span className="text-tile">{label}</span>
-      <span className={`tabular-nums ${bad ? 'text-rush' : 'text-phosphor'}`}>{value}</span>
+      <span
+        className={`tabular-nums ${tone === 'bad' ? 'text-rush' : tone === 'good' ? 'text-amber' : 'text-phosphor'}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function Stars({ n }: { n: number }) {
+  return (
+    <div className="text-3xl tracking-widest" aria-label={`${n} of 3 stars`}>
+      {[0, 1, 2].map((i) => (
+        <span key={i} className={i < n ? 'text-amber' : 'text-steel'}>
+          ★
+        </span>
+      ))}
     </div>
   );
 }
@@ -18,67 +34,89 @@ export function SummaryScreen() {
   if (!summary) return null;
   const st = summary.stats;
   const won = summary.outcome === 'won';
-  const reasons = Object.entries(st.healthByReason).filter(([, v]) => v !== 0) as [ScoreReason, number][];
+  const headline = won
+    ? 'SHIFT SURVIVED'
+    : summary.lostBy === 'allergy'
+      ? 'ALLERGY INCIDENT'
+      : 'YOU’RE OFF EXPO';
+  const heat = Object.entries(st.heatByReason).filter(([, v]) => (v ?? 0) > 0.5) as [ScoreReason, number][];
 
   return (
     <main className="flex h-full items-center justify-center overflow-auto p-4">
       <section className="w-full max-w-2xl border border-steel bg-night p-6 text-sm">
         <p className="text-xs tracking-widest text-tile">NIGHT {summary.nightId} · END OF SHIFT</p>
-        <div className="mt-2 flex items-end justify-between">
-          <h1 className={`text-3xl font-bold ${won ? 'text-amber' : 'text-rush'}`}>
-            {won ? 'SHIFT SURVIVED' : summary.lostBy === 'allergy' ? 'ALLERGY INCIDENT' : 'PULLED OFF EXPO'}
-          </h1>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <div>
+            <h1 className={`text-3xl font-bold ${won ? 'text-amber' : 'text-rush'}`}>{headline}</h1>
+            {!won && summary.lostBy === 'heat' && (
+              <p className="text-xs text-tile">The manager pulled you off the pass. Run it back.</p>
+            )}
+          </div>
           <div className="text-right">
-            <div className={`text-6xl font-bold ${won ? 'text-phosphor' : 'text-rush'}`}>{summary.grade}</div>
-            <div className="text-xs text-tile">score {summary.score}</div>
+            <Stars n={summary.stars} />
+            <div className="text-4xl font-bold tabular-nums text-paper">{pts(summary.score)}</div>
+            <div className="text-xs text-tile">grade {summary.grade}</div>
           </div>
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="space-y-1">
-            <p className="mb-1 text-xs text-amber">TICKET TIME</p>
+            <p className="mb-1 text-xs text-amber">SERVICE</p>
+            <Row label="Perfect tables (landed together)" value={st.perfectSyncs} tone="good" />
+            <Row label="Best combo" value={`×${st.comboMax.toFixed(2)}`} tone="good" />
+            <Row label="Clean boards" value={st.cleanBoards} tone="good" />
+            <Row label="Saves (bad plates caught)" value={st.errorsCaught} tone="good" />
             <Row label="Avg course (ready → out)" value={secs(summary.avgCourseMs)} />
-            <Row label="Avg ticket" value={secs(summary.avgTicketMs)} />
-            <Row label="Worst" value={secs(summary.worstTicketMs)} />
             <Row label="Tickets cleared" value={`${st.ticketsCleared} / ${st.ticketsPrinted}`} />
-            <p className="mt-3 mb-1 text-xs text-amber">ACCURACY</p>
-            <Row label="Bad plates caught" value={st.errorsCaught} />
-            <Row label="Bad plates sent" value={st.errorsEscaped} bad={st.errorsEscaped > 0} />
-            <Row label="Good plates refired" value={st.refiresUnneeded} bad={st.refiresUnneeded > 0} />
           </div>
           <div className="space-y-1">
-            <p className="mb-1 text-xs text-amber">PASS CONTROL</p>
-            <Row label="Plates died" value={st.platesDied} bad={st.platesDied > 0} />
-            <Row label="Incomplete tables sent" value={st.incompleteSends} bad={st.incompleteSends > 0} />
-            <Row label="Tables landed together" value={st.syncedCourses} />
+            <p className="mb-1 text-xs text-amber">WHAT WENT WRONG</p>
+            <Row
+              label="Bad plates sent"
+              value={st.errorsEscaped}
+              tone={st.errorsEscaped ? 'bad' : undefined}
+            />
+            <Row label="Plates died" value={st.platesDied} tone={st.platesDied ? 'bad' : undefined} />
+            <Row
+              label="Fired into a full station"
+              value={st.overfires}
+              tone={st.overfires ? 'bad' : undefined}
+            />
+            <Row
+              label="Incomplete tables sent"
+              value={st.incompleteSends}
+              tone={st.incompleteSends ? 'bad' : undefined}
+            />
             <Row
               label="Food beat the table / drinks"
               value={`${st.earlyLandings} / ${st.barViolations}`}
-              bad={st.earlyLandings + st.barViolations > 0}
+              tone={st.earlyLandings + st.barViolations ? 'bad' : undefined}
             />
-            <Row label="Fired 86’d items" value={st.fired86} bad={st.fired86 > 0} />
-            <Row label="Allergy incidents" value={st.allergyIncidents} bad={st.allergyIncidents > 0} />
-            <p className="mt-3 mb-1 text-xs text-amber">THE DOOR</p>
-            <Row label="Answered right" value={st.interrupts.correct} />
-            <Row label="Answered wrong" value={st.interrupts.wrong} bad={st.interrupts.wrong > 0} />
-            <Row label="Ignored" value={st.interrupts.timeout} bad={st.interrupts.timeout > 0} />
+            <Row
+              label="Peak heat · meltdowns"
+              value={`${Math.round(st.heatPeak)} · ${st.criticals}`}
+              tone={st.criticals ? 'bad' : undefined}
+            />
+            {st.allergyIncidents > 0 && (
+              <Row label="Allergy incidents" value={st.allergyIncidents} tone="bad" />
+            )}
           </div>
         </div>
 
-        <div className="mt-6">
-          <p className="mb-1 text-xs text-amber">
-            SERVICE HEALTH {summary.health} · sub-scores: health {summary.subScores.health} · time{' '}
-            {summary.subScores.time} · accuracy {summary.subScores.accuracy} · pass {summary.subScores.pass}
-          </p>
-          <div className="flex flex-wrap gap-x-4 text-xs">
-            {reasons.map(([r, v]) => (
-              <span key={r} className={v < 0 ? 'text-rush' : 'text-phosphor'}>
-                {v > 0 ? '+' : ''}
-                {v} {REASON_LABEL[r]}
-              </span>
-            ))}
+        {heat.length > 0 && (
+          <div className="mt-6">
+            <p className="mb-1 text-xs text-amber">WHERE THE HEAT CAME FROM</p>
+            <div className="flex flex-wrap gap-x-4 text-xs">
+              {heat
+                .sort((a, b) => b[1] - a[1])
+                .map(([r, v]) => (
+                  <span key={r} className="text-rush">
+                    +{Math.round(v)} {REASON_LABEL[r]}
+                  </span>
+                ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           {won && summary.nightId < 5 && (
@@ -93,7 +131,7 @@ export function SummaryScreen() {
             onClick={() => engine.restart()}
             className="border border-amber px-4 py-2 text-amber hover:bg-amber hover:text-ink"
           >
-            RETRY (same tickets)
+            RUN IT BACK (same tickets)
           </button>
           <button
             onClick={() => engine.start(summary.nightId, randomSeed())}

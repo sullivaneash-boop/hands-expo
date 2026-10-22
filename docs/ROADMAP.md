@@ -95,6 +95,10 @@ Each phase is about 1–2 weeks, stops for owner approval, and keeps `main` play
 | 5.6 | **Retune Nights 1–5**                                                                                                                                                                                                                                   | Average-bot fail ≈ 0–5 / 5–15 / 15–25 / 25–40 / 35–50%; expert <5%; **expert scores ≥20–30% more than expert-ASAP**; death spirals <15% of losses |
 | 5.7 | Minimal UI hooks on the current screen: Heat meter, combo, queue badges, pass spots, score pops                                                                                                                                                         | Every night is playable end to end with the new rules                                                                                             |
 
+### Phase 5 status (2026-10-22)
+
+5.1–5.7 done (D-066 – D-071). Bot validation: expert beats fire-everything-ASAP by 23–44% on every night; average-bot fail 0 / 9.5 / 14 / 27.5 / 42%; experts ≤ 2% on Nights 1–4, 8.5% on Night 5 (incl. allergy). Current desktop UI shows Heat, combo, score, queues, slots, pass spots and the critical banner; the full redesign is Phase 6.
+
 ## Phase 6 — Mobile shell + visual CHECK
 
 | ID  | Task                                                                                                                                                                                                    | Definition of done                                                                     |

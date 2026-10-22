@@ -7,6 +7,7 @@ import { COURSE_LABEL, itemName, modText, seatLabel, serverName, wallClock } fro
 
 const ITEM_TEXT: Record<TicketItem['state'], string> = {
   held: 'text-ink',
+  queued: 'text-ink/60',
   cooking: 'text-ink/60',
   up: 'text-ink',
   sent: 'text-ink/30 line-through',
@@ -14,6 +15,7 @@ const ITEM_TEXT: Record<TicketItem['state'], string> = {
 };
 const CHIP: Record<TicketItem['state'], [string, string]> = {
   held: ['HELD', 'border-ink/40 text-ink/60'],
+  queued: ['QUEUED', 'border-steel border-dashed text-ink/70'],
   cooking: ['FIRED', 'border-steel bg-steel text-paper'],
   up: ['UP', 'border-amber bg-amber text-ink'],
   sent: ['SENT', 'border-transparent text-ink/30'],

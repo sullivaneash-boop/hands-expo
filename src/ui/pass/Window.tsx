@@ -102,6 +102,30 @@ function LivePlate({ id }: { id: string }) {
   );
 }
 
+/** Spot counter: the pass holds a few plates; more backs up behind the window (D-066). */
+function PassSpots() {
+  const used = useGameStore((s) => s.snap?.windowOrder.length ?? 0);
+  const backed = useGameStore((s) => s.snap?.cooking.filter((j) => j.status === 'waiting').length ?? 0);
+  const spots = tuning.pass.spots;
+  return (
+    <div
+      className="absolute bottom-6 left-3 z-10 flex items-center gap-1 text-[10px] text-tile"
+      aria-label={`Pass ${used} of ${spots}`}
+    >
+      {Array.from({ length: spots }, (_, i) => (
+        <span
+          key={i}
+          className={`h-2 w-3 rounded-sm ${i < used ? (used >= spots ? 'bg-rush' : 'bg-amber') : 'bg-steel/50'}`}
+        />
+      ))}
+      <span className="ml-1">
+        PASS {used}/{spots}
+        {backed > 0 && <span className="ml-1 font-bold text-rush">· {backed} BACKED UP</span>}
+      </span>
+    </div>
+  );
+}
+
 /** The CHECK card floats over the right of the pass while a plate is in hand. */
 function PlateInHand() {
   const has = useGameStore((s) => s.selectedPlateId !== null && !!s.snap?.plates[s.selectedPlateId]);
@@ -167,6 +191,7 @@ export function Window() {
           </div>
         ))}
       </div>
+      <PassSpots />
       <div ref={shelf} className="relative flex flex-1 flex-wrap content-start gap-3 px-4 pt-6 pb-3">
         {order && order.length > 0
           ? order.map((id) => <LivePlate key={id} id={id} />)

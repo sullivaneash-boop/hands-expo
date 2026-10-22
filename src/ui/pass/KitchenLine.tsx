@@ -1,12 +1,13 @@
 import { content } from '../../data';
 import type { StationId } from '../../data/schema';
-import type { CookJob } from '../../sim';
+import { stationCapacity, type CookJob } from '../../sim';
+import { engine } from '../../engine/runtime';
 import { useGameStore } from '../../store/useGameStore';
 import { line, shortName } from '../format';
 
 const BARK_MS = 4_500;
 
-/** One pan on the flat-top: dish, table, and a rough "how done" fill (the expo can see the line). */
+/** One pan: dish, table, and a rough "how done" fill. Queued items wait in line; finished food backs up. */
 function Pan({ job }: { job: CookJob }) {
   const nowMs = useGameStore((s) => s.snap?.nowMs ?? 0);
   const table = useGameStore((s) => s.snap?.tickets[job.ticketId]?.table);
@@ -14,18 +15,35 @@ function Pan({ job }: { job: CookJob }) {
     (s) =>
       s.snap?.tickets[job.ticketId]?.courses[job.courseIdx]?.items.find((i) => i.id === job.itemId)?.menuId,
   );
-  const pct = Math.min(100, ((nowMs - job.firedAtMs) / (job.doneAtMs - job.firedAtMs)) * 100);
+  const pct =
+    job.status === 'queued' || job.startedAtMs === null || job.doneAtMs === null
+      ? 0
+      : Math.min(100, ((nowMs - job.startedAtMs) / (job.doneAtMs - job.startedAtMs)) * 100);
+  const look =
+    job.status === 'queued'
+      ? 'border-dashed border-steel/70 bg-night/40 text-paper/60'
+      : job.status === 'waiting'
+        ? 'border-rush bg-rush/15 text-paper'
+        : 'border-steel bg-night/80 text-paper';
   return (
-    <div className="anim-bubble-in w-[4.6rem] shrink-0 rounded-sm border border-steel bg-night/80 p-1 text-[9px] leading-tight text-paper">
+    <div
+      className={`anim-bubble-in w-[4.6rem] shrink-0 rounded-sm border p-1 text-[9px] leading-tight ${look}`}
+    >
       <div className="truncate font-bold">{menuId ? shortName(menuId) : '…'}</div>
       <div className="flex justify-between text-tile">
         <span>T{table ?? '?'}</span>
         {job.onTheFly && <span className="text-rush">OTF</span>}
         {job.allergyProtocol && <span className="text-rush">⚑</span>}
       </div>
-      <div className="mt-0.5 h-1 bg-steel">
-        <div className="h-full bg-amber/80" style={{ width: `${pct}%` }} />
-      </div>
+      {job.status === 'queued' ? (
+        <div className="mt-0.5 text-[8px] tracking-widest text-tile">QUEUED</div>
+      ) : job.status === 'waiting' ? (
+        <div className="mt-0.5 text-[8px] font-bold tracking-widest text-rush">BACKED UP</div>
+      ) : (
+        <div className="mt-0.5 h-1 bg-steel">
+          <div className="h-full bg-amber/80" style={{ width: `${pct}%` }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -33,31 +51,37 @@ function Pan({ job }: { job: CookJob }) {
 function Station({ id, name }: { id: StationId; name: string }) {
   const jobs = useGameStore((s) => s.snap?.cooking);
   const dragging = useGameStore((s) => (s.snap ? s.snap.nowMs < s.snap.stations[id].dragUntilMs : false));
+  const capacity = useGameStore((s) => (s.snap ? stationCapacity(engine.ctx, s.snap, id) : 0));
   const mine = (jobs ?? []).filter((j) => j.station === id);
-  const heat = Math.min(4, mine.length);
+  const cooking = mine.filter((j) => j.status === 'cooking');
+  const queued = mine.filter((j) => j.status === 'queued');
+  const waiting = mine.filter((j) => j.status === 'waiting');
+  const order = [...cooking, ...queued, ...waiting];
   return (
     <div
       className={`relative flex min-w-0 flex-1 flex-col border-x border-steel/60 px-2 pt-1 ${dragging ? 'bg-rush/10' : ''}`}
     >
       <div className="flex items-center justify-between text-[10px] tracking-widest">
         <span className="text-tile">{name}</span>
-        {dragging ? (
-          <span className="animate-pulse font-bold text-rush">DRAGGING</span>
-        ) : (
-          <span className="text-steel">{mine.length ? `${mine.length} working` : 'clear'}</span>
-        )}
+        <span
+          className={queued.length ? 'font-bold text-amber' : dragging ? 'font-bold text-rush' : 'text-steel'}
+        >
+          {dragging ? 'DRAGGING · ' : ''}
+          {cooking.length}/{capacity}
+          {queued.length ? ` · ${queued.length} queued` : ''}
+        </span>
       </div>
       <div className="flex min-h-[3.1rem] items-end gap-1 overflow-hidden py-1">
-        {mine.map((j) => (
+        {order.map((j) => (
           <Pan key={j.itemId} job={j} />
         ))}
       </div>
-      {/* burners */}
+      {/* burners: one per slot, lit when in use */}
       <div className="flex h-3 items-end justify-around" aria-hidden>
-        {Array.from({ length: 4 }, (_, i) => (
+        {Array.from({ length: capacity }, (_, i) => (
           <div
             key={i}
-            className={`h-3 w-4 rounded-t-full ${i < heat ? (dragging ? 'anim-flicker-slow bg-rush/80' : 'anim-flicker bg-amber/80') : 'bg-steel/40'}`}
+            className={`h-3 w-5 rounded-t-full ${i < cooking.length ? (dragging ? 'anim-flicker-slow bg-rush/80' : 'anim-flicker bg-amber/80') : 'bg-steel/40'}`}
             style={{ animationDelay: `${i * 70}ms` }}
           />
         ))}

@@ -71,21 +71,29 @@ export const REPLY_LINE: Record<string, string> = {
 };
 
 export const REASON_LABEL: Record<ScoreReason, string> = {
-  late: 'late ticket',
+  late: 'late tickets',
+  recovery: 'breathing room',
+  cleanCourse: 'clean course',
+  perfectSync: 'landed together',
+  save: 'SAVE',
+  cleanBoard: 'CLEAN BOARD',
+  interruptCorrect: 'handled the door',
+  courseScore: 'course',
   wrongModSent: 'bad plate sent',
   wrongDishSent: 'wrong dish sent',
-  refireCorrect: 'caught a bad plate',
   refireUnneeded: 'refired a good plate',
-  plateDied: 'plate died in the window',
-  incompleteSend: 'sent an incomplete table',
+  plateDied: 'plate died',
+  incompleteSend: 'incomplete table',
   landedEarly: 'food beat the table',
   sentBeforeBar: 'food beat the drinks',
   tableComplete: 'table complete',
-  syncBonus: 'landed together',
   interruptWrong: 'told them wrong',
-  interruptTimeout: 'ignored the door',
+  interruptTimeout: 'ignored them',
   fired86: 'fired an 86’d item',
   allergyIncident: 'ALLERGY INCIDENT',
   overtimeLeftover: 'tickets left at close',
   debug: 'debug',
 };
+
+/** 1528 → "1,528" */
+export const pts = (n: number) => Math.round(n).toLocaleString('en-US');

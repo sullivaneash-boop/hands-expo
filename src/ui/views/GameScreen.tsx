@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { bus } from '../../engine/bus';
 import { useGameStore, type View } from '../../store/useGameStore';
 import { FloorView } from '../floor/FloorView';
-import { Hud } from '../hud/Hud';
+import { CriticalBanner, Hud } from '../hud/Hud';
 import { PassView } from './PassView';
 
 const ORDER: View[] = ['pass', 'floor'];
@@ -31,9 +31,8 @@ function useHitFx(target: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const offs = [
-      bus.on('healthChanged', (e) => {
-        if (!reduce && e.reason !== 'late' && e.delta <= -8)
-          target.current?.animate(SHAKE, { duration: 320 });
+      bus.on('heatChanged', (e) => {
+        if (!reduce && e.delta >= 8) target.current?.animate(SHAKE, { duration: 320 });
       }),
       bus.on('allergyIncident', () => setFlash((n) => n + 1)),
     ];
@@ -83,6 +82,7 @@ export function GameScreen() {
         <div key={view} className="view-blip h-full">
           {view === 'pass' ? <PassView /> : <FloorView />}
         </div>
+        <CriticalBanner />
         {flash > 0 && (
           <div
             key={flash}
