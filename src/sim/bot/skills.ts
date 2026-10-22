@@ -28,6 +28,29 @@ export interface BotSkill {
   respectBarProb: number;
   /** Send an incomplete course when a plate reaches this fraction of its life (≥1 = never). */
   rescueAt: number;
+  /** Strategy overrides for ablations (D-070): prove that strategy, not speed, wins. */
+  strategy?: {
+    /** Fire every course the moment it prints, HOLD or not, all items at once. */
+    fireAsap?: boolean;
+    /** Never stagger items within a course. */
+    neverStagger?: boolean;
+    /** Stagger using paper cook times only, ignoring station slots and queues. */
+    ignoreLoad?: boolean;
+    /** Never check plates (send whatever comes up). */
+    neverCheck?: boolean;
+  };
+}
+
+/** Expert variants for the strategy ablation (`npm run balance -- --ablate`). */
+export function expertVariant(name: 'asap' | 'neverStagger' | 'ignoreLoad' | 'neverCheck'): BotSkill {
+  const base = BOT_SKILLS.expert;
+  const strategy = {
+    asap: { fireAsap: true },
+    neverStagger: { neverStagger: true },
+    ignoreLoad: { ignoreLoad: true },
+    neverCheck: { neverCheck: true },
+  }[name];
+  return { ...base, name: `expert-${name}`, strategy };
 }
 
 export const BOT_SKILLS: Record<'novice' | 'average' | 'expert', BotSkill> = {

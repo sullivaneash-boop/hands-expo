@@ -90,7 +90,7 @@ describe('cook times from modifiers (owner playtest, D-053)', () => {
     ).tick();
     fireAll(h);
     const job = h.state.cooking[0]!;
-    expect(job.doneAtMs - job.firedAtMs).toBe(ms('strip', ['well_done']));
+    expect(job.doneAtMs! - job.firedAtMs).toBe(ms('strip', ['well_done']));
   });
 });
 
@@ -123,14 +123,14 @@ describe('courses + HOLD (3.1)', () => {
     h.until(h.state.nowMs + T.interrupts.patienceMs.server);
     expect(h.ticket.courses[1]!.readyAtMs).not.toBeNull();
     expect(h.ticket.courses[1]!.fireHeard).toBe(false);
-    expect(h.healthDelta('interruptTimeout')).toBe(T.score.interruptTimeout);
+    expect(h.heatDelta('interruptTimeout')).toBe(T.heat.interruptTimeout);
   });
 
   it('firing and sending HOLD mains before the table is ready lands early (−5)', () => {
     const h = new Harness(ctxFor([ticketAt(0, twoCourse)])).tick();
     fireAll(h, 1).untilTrue((s) => s.windowOrder.length === 2);
     h.do({ type: 'send', ticketId: h.ticket.id, courseIdx: 1 });
-    expect(h.healthDelta('landedEarly')).toBe(T.score.landedEarly);
+    expect(h.heatDelta('landedEarly')).toBe(T.heat.landedEarly);
     expect(h.of('courseSent')[0]!.early).toBe(true);
     expect(h.of('courseSent')[0]!.synced).toBe(false);
   });
@@ -144,7 +144,7 @@ describe('courses + HOLD (3.1)', () => {
     h.do({ type: 'answer', interruptId: firstDoor(h).id, choice: 'heard' });
     h.untilTrue((s) => s.windowOrder.length === 2);
     h.do({ type: 'send', ticketId: h.state.railOrder[0]!, courseIdx: 1 });
-    expect(h.healthDelta('landedEarly')).toBe(0);
+    expect(h.heatDelta('landedEarly')).toBe(0);
     expect(h.of('ticketCleared')).toHaveLength(1);
   });
 
@@ -170,13 +170,14 @@ describe('add-on chits (3.2)', () => {
 });
 
 describe('kitchen problems (3.3)', () => {
-  it('a dropped plate is remade on the fly at no health cost', () => {
+  it('a dropped plate is remade on the fly at no heat cost', () => {
     const h = new Harness(ctxFor([ticketAt(0, oneBurger)])).tick();
     fireAll(h).untilTrue((s) => s.windowOrder.length === 1);
     h.do({ type: 'debug', action: { kind: 'triggerInterrupt', interrupt: 'kitchen_refire' } });
     expect(h.state.windowOrder).toHaveLength(0);
     expect(h.state.cooking[0]!.onTheFly).toBe(true);
-    expect(h.state.health).toBe(100);
+    const added = Object.entries(h.state.stats.heatByReason).filter(([k, v]) => k !== 'late' && (v ?? 0) > 0);
+    expect(added).toEqual([]);
     expect(h.state.barks.at(-1)!.vars).toMatchObject({ item: 'HOUSE BURGER', table: 12 });
   });
 
@@ -184,11 +185,12 @@ describe('kitchen problems (3.3)', () => {
     const h = new Harness(ctxFor([ticketAt(0, salmonAndBurger)])).tick();
     fireAll(h);
     const burger = () => h.state.cooking.find((j) => j.station === 'grill')!;
-    const before = burger().doneAtMs - h.state.nowMs;
+    const doneIn = () => burger().doneAtMs! - h.state.nowMs;
+    const before = doneIn();
     h.do({ type: 'debug', action: { kind: 'triggerInterrupt', interrupt: 'kitchen_drag', arg: 'grill' } });
-    const after = burger().doneAtMs - h.state.nowMs;
-    expect(after).toBeGreaterThan(before * 1.4);
-    expect(h.state.cooking.find((j) => j.station === 'saute')!.doneAtMs).toBeLessThan(burger().doneAtMs);
+    const after = doneIn();
+    expect(after).toBeGreaterThan(before * (T.kitchen.dragMultiplier - 0.05));
+    expect(h.state.cooking.find((j) => j.station === 'saute')!.doneAtMs!).toBeLessThan(burger().doneAtMs!);
   });
 });
 
@@ -200,7 +202,7 @@ describe('86 (3.4)', () => {
     expect(h.state.eighty6).toEqual(['salmon']);
     expect(h.ticket.courses[0]!.items[0]!.eightySixed).toBe(true);
     fireAll(h);
-    expect(h.healthDelta('fired86')).toBe(T.score.fired86);
+    expect(h.heatDelta('fired86')).toBe(T.heat.fired86);
     expect(h.ticket.courses[0]!.items.map((i) => i.state)).toEqual(['held', 'cooking']);
   });
 
@@ -257,16 +259,25 @@ describe('bar + manager (3.5)', () => {
     fireAll(h).untilTrue((s) => s.windowOrder.length === 1);
     expect(h.state.nowMs).toBeLessThan(h.ticket.flags.notBeforeMs!);
     h.do({ type: 'send', ticketId: h.ticket.id, courseIdx: 0 });
-    expect(h.healthDelta('sentBeforeBar')).toBe(T.score.sentBeforeBar);
+    expect(h.heatDelta('sentBeforeBar')).toBe(T.heat.sentBeforeBar);
   });
 
-  it('manager_push: the table goes late sooner and drains double', () => {
+  it('manager_push: the table goes late sooner and its lateness weighs more', () => {
     const h = new Harness(
       ctxFor([ticketAt(0, oneBurger), ask(1_000, 'manager_push', { target: { table: 12 } })]),
     ).until(1_000);
     expect(h.ticket.courses[0]!.lateAtMs).toBe(1_000 + T.manager.pushGraceMs);
-    h.until(1_000 + T.manager.pushGraceMs + 2_000);
-    expect(h.healthDelta('late')).toBe(-2 * T.manager.pushDrainMultiplier * T.score.lateDrainPerSec);
+    // Same lateness, with vs. without the push: late heat weighs pushSeverityMultiplier×.
+    const lateWindow = (hh: Harness) => {
+      const at = hh.ticket.courses[0]!.lateAtMs!;
+      hh.until(at);
+      const before = hh.heatDelta('late');
+      hh.until(at + 2_000);
+      return hh.heatDelta('late') - before;
+    };
+    const pushed = lateWindow(h);
+    const control = lateWindow(new Harness(ctxFor([ticketAt(0, oneBurger)])).tick());
+    expect(pushed / control).toBeCloseTo(T.manager.pushSeverityMultiplier, 1);
   });
 
   it('manager_vip: bad plates for that table cost double', () => {
@@ -276,7 +287,7 @@ describe('bar + manager (3.5)', () => {
     ).until(100);
     fireAll(h).untilTrue((s) => s.windowOrder.length === 1);
     h.do({ type: 'send', ticketId: h.ticket.id, courseIdx: 0 });
-    expect(h.healthDelta('wrongModSent')).toBe(T.score.wrongModSent * T.manager.vipPenaltyMultiplier);
+    expect(h.heatDelta('wrongModSent')).toBe(T.heat.wrongModSent * T.manager.vipPenaltyMultiplier);
   });
 });
 
@@ -287,7 +298,7 @@ describe('allergy (3.6)', () => {
     const plates = h.state.windowOrder.map((id) => h.state.plates[id]!);
     expect(plates.every((p) => !p.build.allergyPick)).toBe(true);
     h.do({ type: 'send', ticketId: h.ticket.id, courseIdx: 0 });
-    expect(h.healthDelta('allergyIncident')).toBe(T.score.allergyIncident);
+    expect(h.heatDelta('allergyIncident')).toBe(T.heat.allergyIncident);
     expect(h.state.stats.allergyIncidents).toBe(1);
   });
 
@@ -296,12 +307,12 @@ describe('allergy (3.6)', () => {
     h.do({ type: 'ackAllergy', ticketId: h.ticket.id });
     fireAll(h);
     const [a, b] = [...h.state.cooking].sort((x, y) => (x.itemId < y.itemId ? -1 : 1));
-    expect(b!.doneAtMs - a!.doneAtMs).toBe(T.cook.allergyExtraMs);
+    expect(b!.doneAtMs! - a!.doneAtMs!).toBe(T.cook.allergyExtraMs);
     h.untilTrue((s) => s.windowOrder.length === 2);
     const seat2 = h.state.windowOrder.map((id) => h.state.plates[id]!).find((p) => p.seat === 2)!;
     expect(seat2.build.allergyPick).toBe(true);
     h.do({ type: 'send', ticketId: h.ticket.id, courseIdx: 0 });
-    expect(h.healthDelta('allergyIncident')).toBe(0);
+    expect(h.heatDelta('allergyIncident')).toBe(0);
   });
 
   it('catching an unpicked plate counts as a correct refire; ACK first and the remake comes picked', () => {

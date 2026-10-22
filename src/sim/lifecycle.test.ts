@@ -70,7 +70,6 @@ describe('pass: send / refire / die (2.4)', () => {
     h.tick((STD - QUICK) / T.sim.tickMs - 1);
     h.do({ type: 'fire', ticketId: id, courseIdx: 0, itemId: `${id}.1` });
     h.untilTrue((s) => s.windowOrder.length === 2);
-    const before = h.state.health;
     h.do({ type: 'send', ticketId: id, courseIdx: 0 });
     expect(h.state.railOrder).toHaveLength(0);
     expect(h.state.tickets[id]).toBeUndefined();
@@ -78,7 +77,13 @@ describe('pass: send / refire / die (2.4)', () => {
     const sent = h.of('courseSent')[0]!;
     expect(sent).toMatchObject({ complete: true, synced: true, errors: [] });
     expect(h.of('ticketCleared')[0]).toMatchObject({ clean: true });
-    expect(h.state.health).toBe(Math.min(100, before + T.score.tableComplete + T.score.syncBonus));
+    const scored = h.of('courseScored')[0]!;
+    expect(scored).toMatchObject({ clean: true, perfect: true, plates: 2, multiplier: 1, spreadMs: 0 });
+    expect(scored.total).toBe(2 * T.score.platePoints + T.score.syncPoints + scored.freshPoints);
+    expect(h.scoreFor('perfectSync')).toBe(T.score.perfectSyncBonus);
+    expect(h.scoreFor('tableComplete')).toBe(T.score.tableComplete);
+    expect(h.state.combo).toBe(T.score.combo.start + T.score.combo.step);
+    expect(h.heatDelta('cleanCourse')).toBe(T.heat.cleanCourse);
     expect(h.state.stats.ticketsCleared).toBe(1);
   });
 
@@ -94,25 +99,25 @@ describe('pass: send / refire / die (2.4)', () => {
     const id = h.ticket.id;
     h.do({ type: 'fire', ticketId: id, courseIdx: 0 }).untilTrue((s) => s.windowOrder.length === 1);
     h.do({ type: 'send', ticketId: id, courseIdx: 0 });
-    expect(h.healthDelta('incompleteSend')).toBe(T.score.incompleteSend);
+    expect(h.heatDelta('incompleteSend')).toBe(T.heat.incompleteSend);
     expect(h.state.tickets[id]!.courses[0]!.items.map((i) => i.state)).toEqual(['cooking', 'sent']);
     h.untilTrue((s) => s.windowOrder.length === 1).do({ type: 'send', ticketId: id, courseIdx: 0 });
     expect(h.state.tickets[id]).toBeUndefined();
     expect(h.of('ticketCleared')).toHaveLength(1);
   });
 
-  it('refire a bad plate: no health cost, caught, remade on the fly (faster)', () => {
+  it('refire a bad plate: a SAVE (score, heat relief), remade on the fly (faster)', () => {
     const ctx = makeCtx([ticketAt(0, { ...oneBurger, forceDefect: { itemIdx: 0, defect: 'wrongMod' } })]);
     const h = new Harness(ctx).tick();
     h.do({ type: 'fire', ticketId: h.ticket.id, courseIdx: 0 }).untilTrue((s) => s.windowOrder.length === 1);
-    const health = h.state.health;
     h.do({ type: 'refire', plateId: h.plateFor(0)!.id });
-    expect(h.state.health).toBe(health + T.score.refireCorrect);
+    expect(h.scoreFor('save')).toBe(T.score.saveBonus);
+    expect(h.heatDelta('save')).toBe(T.heat.caughtDefect);
     expect(h.state.stats.errorsCaught).toBe(1);
     expect(h.of('plateRefired')[0]!.correct).toBe(true);
     const job = h.state.cooking[0]!;
     expect(job.onTheFly).toBe(true);
-    expect(job.doneAtMs - job.firedAtMs).toBe(Math.round(STD * T.cook.onTheFlyFactor));
+    expect(job.doneAtMs! - job.startedAtMs!).toBe(Math.round(STD * T.cook.onTheFlyFactor));
     expect(h.ticket.courses[0]!.items[0]!.makes).toBe(2);
   });
 
@@ -120,7 +125,7 @@ describe('pass: send / refire / die (2.4)', () => {
     const h = new Harness(makeCtx([ticketAt(0, oneBurger)])).tick();
     h.do({ type: 'fire', ticketId: h.ticket.id, courseIdx: 0 }).untilTrue((s) => s.windowOrder.length === 1);
     h.do({ type: 'refire', plateId: h.plateFor(0)!.id });
-    expect(h.healthDelta('refireUnneeded')).toBe(T.score.refireUnneeded);
+    expect(h.heatDelta('refireUnneeded')).toBe(T.heat.refireUnneeded);
     expect(h.state.stats.refiresUnneeded).toBe(1);
   });
 
@@ -132,7 +137,7 @@ describe('pass: send / refire / die (2.4)', () => {
     expect(h.of('plateDied')).toHaveLength(0);
     h.until(upAt + T.pass.plateDieMs);
     expect(h.of('plateDied')).toHaveLength(1);
-    expect(h.healthDelta('plateDied')).toBe(T.score.plateDied);
+    expect(h.heatDelta('plateDied')).toBe(T.heat.plateDied);
     expect(h.state.windowOrder).toHaveLength(0);
     expect(h.ticket.courses[0]!.items[0]!.state).toBe('cooking');
     expect(h.state.cooking[0]!.onTheFly).toBe(true);

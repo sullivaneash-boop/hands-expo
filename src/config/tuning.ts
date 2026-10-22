@@ -21,7 +21,7 @@ export const tuning = {
     /** Printer-time length per night (D-006). */
     durationMs: { 1: 180_000, 2: 210_000, 3: 240_000, 4: 270_000, 5: 300_000 },
     /** After the printer stops, how long the player may keep clearing the rail. */
-    overtimeCapMs: 90_000,
+    overtimeCapMs: 150_000,
     /** Multiplier on authored beat times (D-026). */
     timeScale: 1,
     /** Wall-clock minutes shown per sim second (display only; 3:00 shift ≈ 4.5 h of service). */
@@ -54,10 +54,10 @@ export const tuning = {
   },
 
   pass: {
-    /** A plate in the window this long dies (GDD). */
-    plateDieMs: 25_000,
-    /** All plates of a course landing within this window earn the sync bonus. */
-    syncWindowMs: 4_000,
+    /** A plate in the window (or backed up behind it) this long dies (GDD). */
+    plateDieMs: 30_000,
+    /** Plate spots on the pass; when full, finished food waits behind the window and keeps aging (D-066). */
+    spots: 6,
   },
 
   tickets: {
@@ -72,8 +72,11 @@ export const tuning = {
   },
 
   kitchen: {
-    /** A dragging station cooks this much slower (in-progress jobs stretch too). */
-    dragMultiplier: 1.5,
+    /** Cook slots per station; extra fires queue FIFO, on-the-fly remakes jump the queue (D-066). */
+    slots: { grill: 3, saute: 2, pantry: 2 },
+    /** A dragging station loses this many slots (min 1) and cooks this much slower, for dragMs. */
+    dragSlotPenalty: 1,
+    dragMultiplier: 1.25,
     dragMs: 30_000,
   },
 
@@ -83,10 +86,10 @@ export const tuning = {
   },
 
   manager: {
-    /** "Push 14": its live courses go late at most this soon, and drain faster. */
+    /** "Push 14": its live courses go late at most this soon, and weigh more in late heat. */
     pushGraceMs: 20_000,
-    pushDrainMultiplier: 1.5,
-    /** "VIP on 8": bad plates sent to this table cost this many times more. */
+    pushSeverityMultiplier: 1.5,
+    /** "VIP on 8": bad plates sent to this table cost this many times more heat. */
     vipPenaltyMultiplier: 2,
   },
 
@@ -97,46 +100,64 @@ export const tuning = {
     incidentEndsShift: { 1: false, 2: false, 3: false, 4: false, 5: true },
   },
 
+  /**
+   * Service Heat (D-067): 0 = composed, 100 = meltdown. Late courses add heat at a capped rate
+   * (root-sum-square of their severities); everything else is an event. Negative = relief.
+   * Hitting 100 starts a critical window; drop below criticalRecoverBelow in time or the shift ends.
+   */
+  heat: {
+    initial: 10,
+    max: 100,
+    lateRampMs: 12_000,
+    lateRate: 1.25,
+    maxLateRate: 3,
+    passiveRecoveryPerSec: 0.5,
+    wrongModSent: 18,
+    wrongDishSent: 25,
+    refireUnneeded: 4,
+    plateDied: 12,
+    incompleteSend: 8,
+    landedEarly: 6,
+    sentBeforeBar: 6,
+    interruptWrong: 6,
+    interruptTimeout: 6,
+    fired86: 12,
+    allergyIncident: 70,
+    overtimeLeftoverPerTicket: 10,
+    cleanCourse: -5,
+    perfectSync: -4,
+    caughtDefect: -2,
+    cleanBoard: -10,
+    interruptCorrect: -1,
+    criticalRecoverBelow: 90,
+    criticalGraceMs: 10_000,
+  },
+
+  /** Score (D-068): rewards synchronized, fresh, clean service, multiplied by the clean-service combo. */
   score: {
-    startHealth: 100,
-    maxHealth: 100,
-    lateDrainPerSec: 1,
-    wrongModSent: -15,
-    wrongDishSent: -20,
-    refireCorrect: 0,
-    refireUnneeded: -3,
-    plateDied: -10,
-    incompleteSend: -8,
-    landedEarly: -5,
-    sentBeforeBar: -5,
-    tableComplete: 5,
-    syncBonus: 3,
-    interruptWrong: -5,
-    interruptTimeout: -5,
-    fired86: -10,
-    allergyIncident: -50,
-    overtimeLeftoverPerTicket: -10,
-    /** Final 0–100 score = weighted blend of sub-scores (GDD §6 summary). */
-    final: {
-      healthWeight: 0.4,
-      timeWeight: 0.25,
-      accuracyWeight: 0.25,
-      passWeight: 0.1,
-      /** Average course time (ready → sent) that scores 100 on Ticket Time; 2× this scores 0. */
-      targetCourseMs: 45_000,
-      /** Pass Control loses this much per dead plate / incomplete send / early landing. */
-      deadPlateCost: 15,
-      incompleteSendCost: 10,
-      earlyLandingCost: 10,
-    },
-    /** Final score (0–100) → grade, highest band first. */
-    gradeBands: [
-      { min: 90, grade: 'A' },
-      { min: 80, grade: 'B' },
-      { min: 65, grade: 'C' },
-      { min: 50, grade: 'D' },
-      { min: 0, grade: 'F' },
-    ],
+    platePoints: 100,
+    syncPoints: 250,
+    freshPoints: 150,
+    /** Landing spread at which sync quality reaches 0; at or under perfectSyncMs it's a PERFECT table. */
+    syncWindowMs: 6_000,
+    perfectSyncMs: 2_000,
+    perfectSyncBonus: 150,
+    saveBonus: 75,
+    tableComplete: 100,
+    cleanBoardBonus: 500,
+    /** A clean board only counts after a rush: the rail held at least this many tickets since the last one. */
+    cleanBoardMinRail: 3,
+    interruptCorrect: 50,
+    combo: { start: 1, step: 0.25, max: 3, deadPlate: 0.5, seriouslyLate: 0.25, early: 0.25 },
+  },
+
+  /** Score needed for 1 / 2 / 3 stars per night (calibrated with the bot, D-069). Lost shifts get 0. */
+  stars: {
+    1: [5_000, 6_500, 8_000],
+    2: [12_000, 17_500, 21_000],
+    3: [13_000, 19_500, 23_500],
+    4: [7_000, 16_000, 19_500],
+    5: [5_500, 14_000, 17_500],
   },
 
   defects: {
@@ -185,9 +206,9 @@ export const tuning = {
       firstTicketMs: 28_000,
       segments: [
         { untilMs: 90_000, gapMs: [18_000, 24_000] },
-        { untilMs: 130_000, gapMs: [12_000, 16_000] },
+        { untilMs: 130_000, gapMs: [11_000, 14_000] },
         { untilMs: 150_000, gapMs: [0, 0] },
-        { untilMs: 210_000, gapMs: [11_000, 15_000] },
+        { untilMs: 210_000, gapMs: [10_000, 13_000] },
       ],
       twoCourseChance: 0.6,
       allergyChance: 0,
@@ -199,9 +220,9 @@ export const tuning = {
       firstTicketMs: 10_000,
       segments: [
         { untilMs: 60_000, gapMs: [17_000, 21_000] },
-        { untilMs: 130_000, gapMs: [12_000, 15_000] },
+        { untilMs: 130_000, gapMs: [10_000, 13_000] },
         { untilMs: 160_000, gapMs: [0, 0] },
-        { untilMs: 240_000, gapMs: [11_000, 14_000] },
+        { untilMs: 240_000, gapMs: [9_500, 12_500] },
       ],
       twoCourseChance: 0.45,
       allergyChance: 0,
@@ -216,9 +237,9 @@ export const tuning = {
       firstTicketMs: 8_000,
       segments: [
         { untilMs: 60_000, gapMs: [16_000, 20_000] },
-        { untilMs: 150_000, gapMs: [13_000, 16_000] },
+        { untilMs: 150_000, gapMs: [12_500, 15_500] },
         { untilMs: 175_000, gapMs: [0, 0] },
-        { untilMs: 270_000, gapMs: [12_000, 15_000] },
+        { untilMs: 270_000, gapMs: [11_500, 14_500] },
       ],
       twoCourseChance: 0.4,
       allergyChance: 0.15,
@@ -235,7 +256,7 @@ export const tuning = {
       firstTicketMs: 6_000,
       segments: [
         { untilMs: 70_000, gapMs: [18_000, 22_000] },
-        { untilMs: 170_000, gapMs: [16_000, 19_000] },
+        { untilMs: 170_000, gapMs: [15_000, 18_000] },
         { untilMs: 195_000, gapMs: [0, 0] },
         { untilMs: 300_000, gapMs: [13_000, 16_000] },
       ],

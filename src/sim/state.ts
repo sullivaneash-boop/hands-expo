@@ -6,8 +6,11 @@ import type { RngState } from './rng';
 export const RNG_STREAMS = ['schedule', 'kitchen', 'defects', 'interrupts'] as const;
 export type RngStream = (typeof RNG_STREAMS)[number];
 
-/** 'void' = removed from the order after an 86 (counts as done, no plate). */
-export type ItemState = 'held' | 'cooking' | 'up' | 'sent' | 'void';
+/**
+ * 'queued' = fired but waiting for a station slot (D-066). 'cooking' covers on the stove and finished
+ * food backed up behind a full pass. 'void' = removed after an 86 (counts as done, no plate).
+ */
+export type ItemState = 'held' | 'queued' | 'cooking' | 'up' | 'sent' | 'void';
 
 export interface TicketItem {
   /** `${ticketId}.${n}` */
@@ -36,8 +39,10 @@ export interface Course {
   readyAtMs: number | null;
   /** When this course goes late (ready + grace). null until ready. */
   lateAtMs: number | null;
-  /** Whole seconds of lateness already charged to health. */
-  lateSecondsCharged: number;
+  /** ticketLate already emitted for this course. */
+  lateNotified: boolean;
+  /** Lateness reached full severity (combo penalty applied once). */
+  lateMaxed: boolean;
   /** When the last plate of this course went out. */
   sentAtMs: number | null;
   /** The player acknowledged the server's fire request (shows FIRE REQUESTED on the ticket). */
@@ -83,13 +88,23 @@ export interface Plate {
   onTheFly: boolean;
 }
 
+/**
+ * A fired item's trip through the kitchen (D-066): queued for a slot → cooking → (if the pass is full)
+ * waiting behind the window, still aging → lands on the pass as a Plate.
+ */
 export interface CookJob {
   ticketId: string;
   itemId: string;
   courseIdx: number;
   station: StationId;
+  status: 'queued' | 'cooking' | 'waiting';
+  /** When the player fired it. */
   firedAtMs: number;
-  doneAtMs: number;
+  /** Cook time rolled at fire (tier + mods, jitter, on-the-fly); drag applies when it starts. */
+  baseMs: number;
+  startedAtMs: number | null;
+  /** When it finishes cooking (null while queued). */
+  doneAtMs: number | null;
   defect: PlateDefectKind | null;
   onTheFly: boolean;
   /** Made under allergy protocol (player ACKed before firing). */
@@ -134,16 +149,21 @@ export interface StationState {
 
 export type ScoreReason =
   | 'late'
+  | 'recovery'
+  | 'cleanCourse'
+  | 'perfectSync'
+  | 'save'
+  | 'cleanBoard'
+  | 'interruptCorrect'
+  | 'courseScore'
   | 'wrongModSent'
   | 'wrongDishSent'
-  | 'refireCorrect'
   | 'refireUnneeded'
   | 'plateDied'
   | 'incompleteSend'
   | 'landedEarly'
   | 'sentBeforeBar'
   | 'tableComplete'
-  | 'syncBonus'
   | 'interruptWrong'
   | 'interruptTimeout'
   | 'fired86'
@@ -170,23 +190,33 @@ export interface ShiftStats {
   earlyLandings: number;
   barViolations: number;
   syncedCourses: number;
+  perfectSyncs: number;
+  multiPlateCourses: number;
+  /** Items fired by the player (excludes on-the-fly remakes). */
+  itemsFired: number;
+  overfires: number;
+  cleanBoards: number;
+  criticals: number;
+  heatPeak: number;
+  comboMax: number;
   fired86: number;
   allergyIncidents: number;
   checks: number;
   interrupts: Record<InterruptOutcome, number>;
-  healthByReason: Partial<Record<ScoreReason, number>>;
+  heatByReason: Partial<Record<ScoreReason, number>>;
+  scoreByReason: Partial<Record<ScoreReason, number>>;
 }
 
 export interface ShiftSummary {
   outcome: 'won' | 'lost';
   /** Why a lost shift ended. */
-  lostBy: 'health' | 'allergy' | null;
+  lostBy: 'heat' | 'allergy' | null;
   nightId: NightId;
   seed: number;
-  health: number;
+  heat: number;
   score: number;
+  stars: number;
   grade: string;
-  subScores: { health: number; time: number; accuracy: number; pass: number };
   avgTicketMs: number;
   worstTicketMs: number;
   avgCourseMs: number;
@@ -207,7 +237,14 @@ export interface SimState {
   phase: 'running' | 'overtime' | 'ended';
   rng: Readonly<Record<RngStream, RngState>>;
   ids: { next: number; orderNo: number };
-  health: number;
+  /** Service Heat 0..100 (D-067). */
+  heat: number;
+  /** Set while heat is at max: the shift ends at untilMs unless heat drops below the recover line. */
+  critical: { untilMs: number } | null;
+  score: number;
+  combo: number;
+  /** Most tickets on the rail since the last clean board (a clean board needs a rush first). */
+  railPeak: number;
   /** Index of the next unfired shift beat. */
   beatCursor: number;
   /** Next procedural ticket time (null = none tonight / not yet scheduled). */

@@ -216,8 +216,12 @@ export function updateInterrupts(w: Work): void {
 function resolve(w: Work, it: ActiveInterrupt, outcome: InterruptOutcome): void {
   const { score } = w.ctx.tuning;
   w.stats.interrupts[outcome]++;
-  if (outcome === 'wrong') w.health(score.interruptWrong, 'interruptWrong');
-  if (outcome === 'timeout') w.health(score.interruptTimeout, 'interruptTimeout');
+  if (outcome === 'wrong') w.heat(tuningHeat(w).interruptWrong, 'interruptWrong');
+  if (outcome === 'timeout') w.heat(tuningHeat(w).interruptTimeout, 'interruptTimeout');
+  if (outcome === 'correct') {
+    w.score(score.interruptCorrect, 'interruptCorrect');
+    w.heat(tuningHeat(w).interruptCorrect, 'interruptCorrect');
+  }
   w.deleteInterrupt(it.id);
   w.s.interruptOrder = w.s.interruptOrder.filter((x) => x !== it.id);
   w.emit({ type: 'interruptResolved', interruptId: it.id, defId: it.defId, outcome });
@@ -225,3 +229,5 @@ function resolve(w: Work, it: ActiveInterrupt, outcome: InterruptOutcome): void 
 
 /** How many people are waiting at the door. */
 export const doorCount = (w: Work) => w.s.interruptOrder.length;
+
+const tuningHeat = (w: Work) => w.ctx.tuning.heat;

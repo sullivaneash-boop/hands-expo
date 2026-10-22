@@ -2,6 +2,7 @@
  * Derived, read-only views of sim state shared by the sim, the UI and the bot.
  * Pure functions; no state changes.
  */
+import type { StationId } from '../data/schema';
 import type { SimContext } from './context';
 import { needsAllergyPick } from './lookup';
 import { plateError } from './plates';
@@ -46,4 +47,43 @@ export function liveTickets(state: SimState): Ticket[] {
 export function plateNeedsPick(state: SimState, plate: Plate): boolean {
   const ticket = state.tickets[plate.ticketId];
   return !!ticket?.allergy && plate.seat === ticket.allergy.seat;
+}
+
+/** Effective cook slots at a station right now (mirrors the kitchen's rule; a dragging station loses some). */
+export function stationCapacity(ctx: SimContext, state: SimState, station: StationId): number {
+  const { kitchen } = ctx.tuning;
+  const dragging = state.nowMs < state.stations[station].dragUntilMs;
+  return Math.max(1, kitchen.slots[station] - (dragging ? kitchen.dragSlotPenalty : 0));
+}
+
+/**
+ * When would a newly fired item at `station` start cooking? Plays the slot timeline forward:
+ * cooking jobs free their slots at doneAt, queued jobs take slots in order.
+ * `extra` = cook times of items about to be fired at this station ahead of it (same batch).
+ */
+export function stationStartEstimate(
+  ctx: SimContext,
+  state: SimState,
+  station: StationId,
+  extra: readonly number[] = [],
+): number {
+  const now = state.nowMs;
+  const cap = stationCapacity(ctx, state, station);
+  const jobs = state.cooking.filter((j) => j.station === station && j.status !== 'waiting');
+  const slots = jobs
+    .filter((j) => j.status === 'cooking')
+    .map((j) => j.doneAtMs ?? now)
+    .sort((a, b) => a - b);
+  while (slots.length < cap) slots.push(now);
+  slots.sort((a, b) => a - b);
+  const queued = jobs
+    .filter((j) => j.status === 'queued')
+    .sort((a, b) => Number(b.onTheFly) - Number(a.onTheFly) || a.firedAtMs - b.firedAtMs)
+    .map((j) => j.baseMs);
+  for (const ms of [...queued, ...extra]) {
+    const t = Math.max(now, slots.shift() ?? now);
+    slots.push(t + ms);
+    slots.sort((a, b) => a - b);
+  }
+  return Math.max(now, slots[0] ?? now);
 }

@@ -6,9 +6,14 @@ import { createSim, step, type PlayerCommand, type SimContext, type SimEvent, ty
 
 const noProcedural = { firstTicketMs: 0, segments: [], twoCourseChance: 0, allergyChance: 0, interrupts: {} };
 
-/** No jitter, no random defects, no kitchen pick misses, no procedural tickets/interrupts. */
+/**
+ * No jitter, no random defects, no kitchen pick misses, no procedural tickets/interrupts, and (unless a
+ * test opts in via `tightTuning`) effectively unlimited station slots and pass spots.
+ */
 export const quietTuning: Tuning = {
   ...tuning,
+  kitchen: { ...tuning.kitchen, slots: { grill: 99, saute: 99, pantry: 99 } },
+  pass: { ...tuning.pass, spots: 99 },
   cook: { ...tuning.cook, jitterPct: 0 },
   defects: { ...tuning.defects, ratePerNight: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
   allergy: { ...tuning.allergy, pickMissRatePerNight: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
@@ -114,7 +119,15 @@ export class Harness {
     return item.plateId ? this.state.plates[item.plateId]! : null;
   }
 
-  healthDelta(reason: string): number {
-    return this.state.stats.healthByReason[reason as keyof SimState['stats']['healthByReason']] ?? 0;
+  /** Total heat added (positive) or relieved (negative) for a reason. */
+  heatDelta(reason: string): number {
+    return this.state.stats.heatByReason[reason as keyof SimState['stats']['heatByReason']] ?? 0;
+  }
+
+  scoreFor(reason: string): number {
+    return this.state.stats.scoreByReason[reason as keyof SimState['stats']['scoreByReason']] ?? 0;
   }
 }
+
+/** quietTuning with the real station slots and pass spots (for capacity tests). */
+export const tightTuning: Tuning = { ...quietTuning, kitchen: tuning.kitchen, pass: tuning.pass };

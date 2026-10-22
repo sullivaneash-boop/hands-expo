@@ -14,7 +14,7 @@ import { updateKitchen } from './systems/kitchen';
 import { answer, spawnInterrupt, updateInterrupts } from './systems/interrupts';
 import { check, refire, send, updatePass } from './systems/pass';
 import { updateSchedule } from './systems/schedule';
-import { updateLateness } from './systems/scoring';
+import { updateHeat } from './systems/scoring';
 import { updateShiftEnd } from './systems/shift';
 import { ackAllergy, fire, printTicket, resolve86 } from './systems/tickets';
 import { Work } from './work';
@@ -45,11 +45,20 @@ export function emptyStats(): ShiftStats {
     earlyLandings: 0,
     barViolations: 0,
     syncedCourses: 0,
+    perfectSyncs: 0,
+    multiPlateCourses: 0,
+    itemsFired: 0,
+    overfires: 0,
+    cleanBoards: 0,
+    criticals: 0,
+    heatPeak: 0,
+    comboMax: 1,
     fired86: 0,
     allergyIncidents: 0,
     checks: 0,
     interrupts: { correct: 0, wrong: 0, timeout: 0, moot: 0 },
-    healthByReason: {},
+    heatByReason: {},
+    scoreByReason: {},
   };
 }
 
@@ -65,7 +74,11 @@ export function createSim(seed: number, nightId: NightId, ctx: SimContext): SimS
     phase: 'running',
     rng,
     ids: { next: 0, orderNo: ORDER_NO_START },
-    health: ctx.tuning.score.startHealth,
+    heat: ctx.tuning.heat.initial,
+    critical: null,
+    score: 0,
+    combo: ctx.tuning.score.combo.start,
+    railPeak: 0,
     beatCursor: 0,
     nextTicketMs: profile.segments.length > 0 ? profile.firstTicketMs : null,
     procNext: {},
@@ -111,7 +124,7 @@ export function step(prev: SimState, commands: readonly PlayerCommand[], ctx: Si
   updateKitchen(w);
   updatePass(w);
   updateInterrupts(w);
-  updateLateness(w);
+  updateHeat(w);
   updateShiftEnd(w);
 
   return { state: w.finish(), events: w.events };
@@ -145,8 +158,8 @@ function applyCommand(w: Work, command: PlayerCommand): void {
           w.emit({ type: 'commandRejected', command, reason: 'no valid target right now' });
         return;
       }
-      if (a.kind === 'setHealth') {
-        w.health(a.health - w.s.health, 'debug');
+      if (a.kind === 'setHeat') {
+        w.heat(a.heat - w.s.heat, 'debug');
         return;
       }
       break;

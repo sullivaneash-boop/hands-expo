@@ -9,7 +9,7 @@ import type { SimContext } from '../context';
 import { itemDone, needsAllergyPick } from '../lookup';
 import { baseCookMs } from '../plates';
 import { Rng, seedRng, type RngState } from '../rng';
-import { plateIsWrong, STATUS_ANSWERS, ticketStatus } from '../selectors';
+import { plateIsWrong, stationStartEstimate, STATUS_ANSWERS, ticketStatus } from '../selectors';
 import type { Course, SimState, Ticket } from '../state';
 import type { BotSkill } from './skills';
 
@@ -100,12 +100,12 @@ export function botStep(
         const plate = item.plateId ? s.plates[item.plateId] : undefined;
         if (!plate || plate.id in mem.verdicts) continue;
         const pickMissing = needsAllergyPick(t, item) && !plate.build.allergyPick;
-        if (pickMissing && r.chance(skill.pickSpotProb)) {
+        if (pickMissing && !skill.strategy?.neverCheck && r.chance(skill.pickSpotProb)) {
           mem.verdicts[plate.id] = 'bad';
           act(null);
           return done();
         }
-        if (r.chance(skill.checkProb)) {
+        if (!skill.strategy?.neverCheck && r.chance(skill.checkProb)) {
           const bad = plateIsWrong(ctx, s, plate) && r.chance(skill.spotProb);
           mem.verdicts[plate.id] = bad ? 'bad' : 'ok';
           act({ type: 'check', plateId: plate.id });
@@ -149,13 +149,14 @@ export function botStep(
       }
 
   // ── 4. Fire ───────────────────────────────────────────────────────────────
+  const strat = skill.strategy ?? {};
   for (const t of tickets) {
     for (let ci = 0; ci < t.courses.length; ci++) {
       const c = t.courses[ci] as Course;
       const held = c.items.filter((i) => i.state === 'held' && !i.eightySixed);
       if (held.length === 0) continue;
       const ready = c.readyAtMs !== null && now >= c.readyAtMs;
-      if (!ready && once(`hold:${t.id}:${ci}`, skill.holdDiscipline)) continue;
+      if (!ready && !strat.fireAsap && once(`hold:${t.id}:${ci}`, skill.holdDiscipline)) continue;
       if (
         t.allergy &&
         !t.allergy.acked &&
@@ -165,19 +166,31 @@ export function botStep(
         act({ type: 'ackAllergy', ticketId: t.id });
         return done();
       }
-      if (!once(`sync:${t.id}:${ci}`, skill.syncProb)) {
+      const stagger = !strat.fireAsap && !strat.neverStagger && once(`sync:${t.id}:${ci}`, skill.syncProb);
+      if (!stagger) {
         act({ type: 'fire', ticketId: t.id, courseIdx: ci });
         return done();
       }
-      // Stagger: estimate when the slowest item lands; fire each item so it lands then too.
+      // Stagger: estimate when each item would land if fired now — including waiting for a free slot
+      // behind the station's queue (D-066) — and fire each item so the whole course lands together.
       const extra = (i: (typeof held)[number]) =>
         needsAllergyPick(t, i) && t.allergy?.acked ? ctx.tuning.cook.allergyExtraMs : 0;
-      const est = (i: (typeof held)[number]) => baseCookMs(ctx, i) + extra(i);
-      const cookingLand = s.cooking
+      const cookMs = (i: (typeof held)[number]) => baseCookMs(ctx, i) + extra(i);
+      const stationOf = (i: (typeof held)[number]) =>
+        ctx.content.menu.find((m) => m.id === i.menuId)?.station ?? 'grill';
+      const landIfFiredNow = (i: (typeof held)[number]) =>
+        (strat.ignoreLoad ? now : stationStartEstimate(ctx, s, stationOf(i))) + cookMs(i);
+      const inFlight = s.cooking
         .filter((j) => j.ticketId === t.id && j.courseIdx === ci)
-        .map((j) => j.doneAtMs);
-      const land = Math.max(...held.map((i) => now + est(i)), ...cookingLand);
-      const next = held.find((i) => now + est(i) >= land - 1_500);
+        .map(
+          (j) =>
+            j.doneAtMs ??
+            (strat.ignoreLoad ? now + j.baseMs : stationStartEstimate(ctx, s, j.station) + j.baseMs),
+        );
+      const land = Math.max(...held.map(landIfFiredNow), ...inFlight);
+      const next = [...held]
+        .sort((a, b) => landIfFiredNow(b) - landIfFiredNow(a))
+        .find((i) => landIfFiredNow(i) >= land - 1_500);
       if (next) {
         act({ type: 'fire', ticketId: t.id, courseIdx: ci, itemId: next.id });
         return done();

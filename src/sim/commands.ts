@@ -8,7 +8,7 @@ export type DebugAction =
   | { kind: 'spawnTicket' }
   /** Trigger an interrupt now. `table` targets a live ticket; `arg` = menu id / station id. */
   | { kind: 'triggerInterrupt'; interrupt: string; table?: number; arg?: string }
-  | { kind: 'setHealth'; health: number };
+  | { kind: 'setHeat'; heat: number };
 
 export type PlayerCommand =
   /** Fire a whole course, or one item when itemId is given. */

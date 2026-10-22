@@ -26,6 +26,8 @@ export class Work {
   private touched = new Set<string>();
   private copiedMaps = new Set<MapKey>();
   private statsCopied = false;
+  /** Heat touched the max at some point this tick (critical check, D-067). */
+  hitMaxHeat = false;
 
   constructor(
     prev: SimState,
@@ -109,16 +111,41 @@ export class Work {
     return this.s.stats;
   }
 
-  /** Apply a health change (clamped), record it by reason, emit healthChanged. */
-  health(delta: number, reason: ScoreReason): void {
+  /** Change Service Heat (positive = worse), clamped to 0..max; recorded by reason (D-067). */
+  heat(delta: number, reason: ScoreReason, emit = true): void {
     if (delta === 0) return;
-    const { maxHealth } = this.ctx.tuning.score;
-    const before = this.s.health;
-    this.s.health = Math.max(0, Math.min(maxHealth, before + delta));
-    const applied = this.s.health - before;
-    const byReason = this.stats.healthByReason;
-    byReason[reason] = (byReason[reason] ?? 0) + delta;
-    this.emit({ type: 'healthChanged', delta, applied, reason, health: this.s.health });
+    const { max } = this.ctx.tuning.heat;
+    this.s.heat = Math.max(0, Math.min(max, this.s.heat + delta));
+    if (this.s.heat >= max) this.hitMaxHeat = true;
+    const st = this.stats;
+    st.heatByReason[reason] = (st.heatByReason[reason] ?? 0) + delta;
+    st.heatPeak = Math.max(st.heatPeak, this.s.heat);
+    if (emit) this.emit({ type: 'heatChanged', delta, reason, heat: this.s.heat });
+  }
+
+  /** Add points to the score (D-068). */
+  score(points: number, reason: ScoreReason): void {
+    if (points === 0) return;
+    this.s.score += points;
+    const st = this.stats;
+    st.scoreByReason[reason] = (st.scoreByReason[reason] ?? 0) + points;
+    this.emit({ type: 'scored', points, reason, total: this.s.score });
+  }
+
+  /** Set the clean-service combo (clamped to start..max). */
+  setCombo(value: number, reason: string): void {
+    const { start, max } = this.ctx.tuning.score.combo;
+    const next = Math.max(start, Math.min(max, Math.round(value * 100) / 100));
+    if (next === this.s.combo) return;
+    const previous = this.s.combo;
+    this.s.combo = next;
+    this.stats.comboMax = Math.max(this.stats.comboMax, next);
+    this.emit({ type: 'comboChanged', combo: next, previous, reason });
+  }
+
+  /** Penalty multiplier for bad plates on a VIP table. */
+  vipMult(ticket: Ticket): number {
+    return ticket.flags.vip ? this.ctx.tuning.manager.vipPenaltyMultiplier : 1;
   }
 
   /** Live tickets in rail order. */

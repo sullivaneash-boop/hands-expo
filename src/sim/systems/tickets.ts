@@ -23,7 +23,8 @@ export function printTicket(
     hold: c.hold ?? false,
     readyAtMs: null,
     lateAtMs: null,
-    lateSecondsCharged: 0,
+    lateNotified: false,
+    lateMaxed: false,
     sentAtMs: null,
     fireHeard: false,
     items: c.items.map((it): TicketItem => {
@@ -70,6 +71,7 @@ export function printTicket(
   });
   w.putTicket(ticket);
   w.s.railOrder = [...w.s.railOrder, id];
+  w.s.railPeak = Math.max(w.s.railPeak, w.s.railOrder.length);
   w.stats.ticketsPrinted++;
   const lineCount =
     8 + courses.length + itemCount + modLines + (ticket.note ? 2 : 0) + (ticket.allergy ? 2 : 0);
@@ -124,7 +126,7 @@ export function fire(w: Work, cmd: Extract<PlayerCommand, { type: 'fire' }>): vo
     if (item.eightySixed) {
       // "It's 86'd!" — the line can't make it. Resolve it first (GDD §6).
       w.stats.fired86++;
-      w.health(w.ctx.tuning.score.fired86, 'fired86');
+      w.heat(w.ctx.tuning.heat.fired86, 'fired86');
       w.emit({ type: 'fired86', ticketId: ticket.id, itemId: item.id });
       continue;
     }
@@ -243,9 +245,19 @@ function clearTicket(w: Work, ticketId: string): void {
   w.stats.ticketTimeMaxMs = Math.max(w.stats.ticketTimeMaxMs, ticketTimeMs);
   const sentAnything = ticket.courses.some((c) => c.items.some((i) => i.state === 'sent'));
   if (clean && sentAnything && ticket.kind === 'order')
-    w.health(w.ctx.tuning.score.tableComplete, 'tableComplete');
+    w.score(w.ctx.tuning.score.tableComplete, 'tableComplete');
   w.s.railOrder = w.s.railOrder.filter((id) => id !== ticketId);
   w.s.pending = w.s.pending.filter((p) => p.ticketId !== ticketId);
   w.deleteTicket(ticketId);
   w.emit({ type: 'ticketCleared', ticketId, table: ticket.table, ticketTimeMs, clean });
+  // CLEAN BOARD: the rail went from a rush to empty (D-068).
+  const S = w.ctx.tuning.score;
+  if (w.s.railOrder.length === 0 && w.s.railPeak >= S.cleanBoardMinRail) {
+    w.stats.cleanBoards++;
+    w.s.railPeak = 0;
+    const bonus = Math.round(S.cleanBoardBonus * w.s.combo);
+    w.score(bonus, 'cleanBoard');
+    w.heat(w.ctx.tuning.heat.cleanBoard, 'cleanBoard');
+    w.emit({ type: 'cleanBoard', bonus });
+  }
 }
