@@ -47,12 +47,14 @@ export function validateContent(c: Content): string[] {
     if (m.ticketName !== m.ticketName.toUpperCase())
       errors.push(`menu "${m.id}" ticketName must be ALL CAPS`);
     if (!stationIds.has(m.station)) errors.push(`menu "${m.id}" unknown station "${m.station}"`);
+    if (!m.icon) errors.push(`menu "${m.id}" needs an icon`);
     for (const mod of m.legalMods) if (!modById.has(mod)) errors.push(`menu "${m.id}" unknown mod "${mod}"`);
     if (m.defaultSide && !modById.has(m.defaultSide))
       errors.push(`menu "${m.id}" unknown defaultSide "${m.defaultSide}"`);
   }
   for (const mod of c.mods) {
     if (mod.text !== mod.text.toUpperCase()) errors.push(`mod "${mod.id}" text must be ALL CAPS`);
+    if (mod.kind !== 'doneness' && !mod.icon) errors.push(`mod "${mod.id}" needs an icon`);
     for (const a of mod.allergens ?? [])
       if (!allergenSet.has(a)) errors.push(`mod "${mod.id}" unknown allergen "${a}"`);
   }

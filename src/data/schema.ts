@@ -16,6 +16,8 @@ export interface MenuItemDef {
   id: string;
   /** ALL CAPS, as printed on the ticket. */
   ticketName: string;
+  /** Silhouette key in the UI icon set (D-072). */
+  icon: string;
   course: CourseKind;
   station: StationId;
   cookTier: CookTier;
@@ -32,6 +34,8 @@ export interface ModDef {
   kind: ModKind;
   /** Printed as *** TEXT *** */
   emphasize?: boolean;
+  /** Icon key (ingredient for removals/adds, item for sides). Doneness uses the temp gauge instead. */
+  icon?: string;
   /** Allergens this mod adds to the dish (e.g. ADD SALMON → fish). */
   allergens?: readonly string[];
 }
@@ -61,6 +65,8 @@ export interface TicketTemplate {
   courses: readonly { kind: CourseKind; hold?: boolean; items: readonly TicketItemTemplate[] }[];
   /** Scripted teaching moment: force a defect on the Nth item (flattened across courses). */
   forceDefect?: { itemIdx: number; defect: PlateDefectKind };
+  /** Scripted teaching moment: every first make on this ticket comes up right (the coach's first CHECK). */
+  noDefects?: boolean;
 }
 
 export type ShiftBeat =

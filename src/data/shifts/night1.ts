@@ -1,7 +1,8 @@
 import type { ShiftDef } from '../schema';
 
 /**
- * Night 1 — "The Window". Report 02's sample timeline compressed ×0.6 to 3:00 (D-006).
+ * Night 1 — "The Window". Report 02's sample timeline compressed ×0.6 to 3:00 (D-006); the first
+ * ticket prints at 0:03 with a guaranteed-clean plate so the coach can start right away (6.6).
  * Teaching beats: first fire (T12), first modifier (T8), multi-plate table with a forced bad side (T21),
  * rail building (T26), mini-rush + server status (T30/T33), quiet beat (~2:20), final wave with a
  * deliberate wrong-mod plate (T40), printer stops at 3:00.
@@ -14,13 +15,15 @@ export const night1 = {
   features: [],
   beats: [
     {
-      atMs: 7_200,
+      atMs: 3_000,
       type: 'ticket',
       ticket: {
         table: 12,
         server: 'maya',
         guests: 1,
         courses: [{ kind: 'main', items: [{ seat: 1, menuId: 'burger', mods: ['medium', 'fries'] }] }],
+        // The coach says "everything matches — tap GOOD" on this plate, so it must be right.
+        noDefects: true,
       },
     },
     {

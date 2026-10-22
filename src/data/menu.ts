@@ -6,6 +6,7 @@ const DONENESS = ['rare', 'med_rare', 'medium', 'med_well', 'well_done'] as cons
 export const menu = [
   {
     id: 'burger',
+    icon: 'burger',
     ticketName: 'HOUSE BURGER',
     course: 'main',
     station: 'grill',
@@ -26,6 +27,7 @@ export const menu = [
   },
   {
     id: 'strip',
+    icon: 'steak',
     ticketName: 'NY STRIP',
     course: 'main',
     station: 'grill',
@@ -37,6 +39,7 @@ export const menu = [
   },
   {
     id: 'salmon',
+    icon: 'salmon',
     ticketName: 'SALMON',
     course: 'main',
     station: 'saute',
@@ -48,6 +51,7 @@ export const menu = [
   },
   {
     id: 'chicken',
+    icon: 'chicken',
     ticketName: 'HALF CHICKEN',
     course: 'main',
     station: 'saute',
@@ -59,6 +63,7 @@ export const menu = [
   },
   {
     id: 'chop',
+    icon: 'salad',
     ticketName: 'CHOP SALAD',
     course: 'main',
     station: 'pantry',
@@ -77,6 +82,7 @@ export const menu = [
   },
   {
     id: 'burrata',
+    icon: 'burrata',
     ticketName: 'BURRATA',
     course: 'app',
     station: 'pantry',
@@ -87,6 +93,7 @@ export const menu = [
   },
   {
     id: 'calamari',
+    icon: 'calamari',
     ticketName: 'CRISPY CALAMARI',
     course: 'app',
     station: 'saute',
@@ -97,6 +104,7 @@ export const menu = [
   },
   {
     id: 'side_fries',
+    icon: 'fries',
     ticketName: 'SIDE FRIES',
     course: 'side',
     station: 'pantry',

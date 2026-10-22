@@ -16,13 +16,16 @@ export interface ProgressStore {
   unlocked: NightId;
   best: Partial<Record<NightId, Best>>;
   muted: boolean;
+  /** The Night 1 coach has been completed or skipped. */
+  tutorialDone: boolean;
   record: (summary: ShiftSummary) => void;
   setMuted: (muted: boolean) => void;
+  finishTutorial: () => void;
   reset: () => void;
 }
 
 const LAST_NIGHT: NightId = 5;
-const DEFAULTS = { unlocked: 1 as NightId, best: {}, muted: false };
+const DEFAULTS = { unlocked: 1 as NightId, best: {}, muted: false, tutorialDone: false };
 
 /** localStorage that never throws (every access can fail in private windows). */
 const safeStorage: StateStorage = {
@@ -66,13 +69,19 @@ export const useProgress = create<ProgressStore>()(
           return { best, unlocked: Math.max(p.unlocked, next) as NightId };
         }),
       setMuted: (muted) => set({ muted }),
-      reset: () => set({ unlocked: 1, best: {} }),
+      finishTutorial: () => set({ tutorialDone: true }),
+      reset: () => set({ unlocked: 1, best: {}, tutorialDone: false }),
     }),
     {
       name: 'hands-progress',
       version: 1,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (p) => ({ unlocked: p.unlocked, best: p.best, muted: p.muted }),
+      partialize: (p) => ({
+        unlocked: p.unlocked,
+        best: p.best,
+        muted: p.muted,
+        tutorialDone: p.tutorialDone,
+      }),
       // Anything unexpected in storage → sane defaults rather than a broken title screen.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<ProgressStore>;
@@ -87,6 +96,7 @@ export const useProgress = create<ProgressStore>()(
           unlocked: isNight(p.unlocked) ? p.unlocked : DEFAULTS.unlocked,
           best,
           muted: typeof p.muted === 'boolean' ? p.muted : false,
+          tutorialDone: p.tutorialDone === true,
         };
       },
     },

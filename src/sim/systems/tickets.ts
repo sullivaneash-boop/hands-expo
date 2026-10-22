@@ -40,7 +40,12 @@ export function printTicket(
         state: 'held',
         plateId: null,
         // Forced defects skip the random roll so scripted teaching beats are exact.
-        firstDefect: forced ?? rollDefect(w.ctx, rate, w.rng.defects),
+        // `noDefects` still rolls, so the defect stream (and every later ticket) is unchanged.
+        firstDefect:
+          forced ??
+          (template.noDefects
+            ? (rollDefect(w.ctx, rate, w.rng.defects), null)
+            : rollDefect(w.ctx, rate, w.rng.defects)),
         makes: 0,
         // Rung in after an 86 (the server hadn't heard yet): must be resolved before firing.
         eightySixed: w.s.eighty6.includes(it.menuId),
